@@ -355,6 +355,10 @@ class Room {
     G.msg = 'Kartu dibagikan: dealer 14 kartu, pemain lain 13.';
     this.broadcast(); await this.sleep(700);
     for (let i = 0; i < 4; i++) await this.replaceInitialFlowers((G.dealer + i) % 4);
+    { // ringkasan bunga awal (dibuka di depan masing-masing pemain)
+      const got = G.players.map((pl, i) => pl.flowers.length ? `${esc(this.nm(i))} ${pl.flowers.length}` : null).filter(Boolean);
+      if (got.length) { G.msg = `🌸 Bunga dibuka: ${got.join(' · ')}`; this.broadcast(); await this.sleep(900); }
+    }
     for (const [i, e] of this.recs) e.r.startHand({ dealer: i === G.dealer, wind: this.seatWind(i) });
 
     let cur = G.dealer, phase = 'afterDraw', flags = { heavenly: true, kongDraw: false };
@@ -398,6 +402,7 @@ class Room {
     }
   }
 
+  flowerNote(p, k) { return (k - 34) % 4 === this.seatWind(p) ? ' (bunga kursi sendiri, +1 fan)' : ''; }
   async replaceInitialFlowers(p) {
     const pl = this.G.players[p];
     while (true) {
@@ -408,8 +413,10 @@ class Room {
       const r = this.G.wall.pop();
       pl.hand.push(r);
       if (pl.drawn === f.id) pl.drawn = r.id;
-      this.log(`${this.nm(p)} membuka ${tileName(f.k)} dan mengambil kartu pengganti.`);
-      await this.sleep(300);
+      this.log(`${this.nm(p)} membuka ${tileName(f.k)}${this.flowerNote(p, f.k)} dan mengambil kartu pengganti.`);
+      this.G.msg = `${esc(this.nm(p))} membuka <b>${tileName(f.k)}</b> dan mengambil kartu pengganti.`;
+      this.broadcast();
+      await this.sleep(450);
     }
   }
   async drawTile(p, fromBack) {
@@ -417,8 +424,10 @@ class Room {
     let t = fromBack ? G.wall.pop() : G.wall.shift();
     while (t && t.k >= 34) {
       pl.flowers.push(t.k);
-      this.log(`${this.nm(p)} mendapat ${tileName(t.k)} → disisihkan, ambil pengganti.`);
-      await this.sleep(450);
+      this.log(`${this.nm(p)} mendapat ${tileName(t.k)}${this.flowerNote(p, t.k)} → dibuka di depan, ambil pengganti.`);
+      G.msg = `${esc(this.nm(p))} mendapat <b>${tileName(t.k)}</b> — dibuka, lalu mengambil kartu pengganti.`;
+      this.callout(p, 'BUNGA!');
+      await this.sleep(700);
       t = G.wall.pop();
     }
     if (!t) return null;

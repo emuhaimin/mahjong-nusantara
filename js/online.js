@@ -184,7 +184,7 @@ const Online = (() => {
     const el = $('#on-s-' + pos), sw = windOf(i), me = i === S.you, side = pos === 'left' || pos === 'right';
     el.className = `seat slot-${pos === 'bottom' ? 'me' : pos} pos-${pos}${g.turn === i ? ' active' : ''}`;
     const tag = seat.human ? (seat.connected ? '' : ' · <span class="on-err">terputus</span>') : ` · ${seat.level ? lvTag(seat.level) : 'bot'}`;
-    const info = `<div class="seat-info"><span class="wind-badge w${sw}">${WIND_CH[sw]}</span><span class="who"><b>${esc(pl.name)}</b><small>${WIND_ID[sw]}${i === g.dealer ? ' · Dealer' : ''}${tag}</small></span><span class="pts">${pl.score}</span><span class="cnt">${pl.count} kartu</span>${pl.flowers.length ? `<span class="flw">${pl.flowers.map(k => tileHTML(k, { cls: 'xxs' })).join('')}</span>` : ''}</div>`;
+    const info = `<div class="seat-info"><span class="wind-badge w${sw}">${WIND_CH[sw]}</span><span class="who"><b>${esc(pl.name)}</b><small>${WIND_ID[sw]}${i === g.dealer ? ' · Dealer' : ''}${tag}</small></span><span class="pts">${pl.score}</span><span class="cnt">${pl.count} kartu</span></div>`;
     let hand;
     if (pl.hand) {
       const sorted = pl.hand.slice().sort(sortT);
@@ -200,7 +200,7 @@ const Online = (() => {
       })).join('');
     } else hand = Array.from({ length: pl.count }, () => backHTML(side ? 'sm slat' : 'sm')).join('');
     const msz = me ? 'md' : 'xs';
-    const melds = pl.melds.map(m => `<div class="meld">${meldTiles(m).map((k, j) => (m.type === 'kong' && m.concealed && (j === 0 || j === 3) && !g.reveal && !me) ? backHTML(msz) : tileHTML(k, { cls: msz })).join('')}</div>`).join('');
+    const melds = flowersHTML(pl.flowers, msz, sw) + pl.melds.map(m => `<div class="meld">${meldTiles(m).map((k, j) => (m.type === 'kong' && m.concealed && (j === 0 || j === 3) && !g.reveal && !me) ? backHTML(msz) : tileHTML(k, { cls: msz })).join('')}</div>`).join('');
     const ld = g.lastDiscard;
     const dis = pl.discards.map(t => tileHTML(t.k, { cls: 'xs' + (ld && ld.id === t.id ? ' last' : '') })).join('');
     const H = `<div class="seat-hand">${hand}</div>`, M = `<div class="seat-melds">${melds}</div>`, D = `<div class="seat-discards">${dis}</div>`;

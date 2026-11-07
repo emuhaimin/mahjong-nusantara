@@ -134,6 +134,10 @@ const Game = (() => {
     render(); await wait(600);
 
     for (let i = 0; i < 4; i++) await replaceInitialFlowers((G.dealer + i) % 4);
+    { // ringkasan bunga awal (dibuka di depan masing-masing pemain)
+      const got = G.players.map((pl, i) => pl.flowers.length ? `${pname(i)} ${pl.flowers.length}` : null).filter(Boolean);
+      if (got.length) { G.msg = `🌸 Bunga dibuka: ${got.join(' · ')}`; render(); await wait(900); }
+    }
     if (G.rec) G.rec.startHand({ dealer: G.dealer === 0, wind: seatWind(0) });
 
     let cur = G.dealer, phase = 'afterDraw';
@@ -182,6 +186,7 @@ const Game = (() => {
     }
   }
 
+  const flowerNote = (p, k) => (isOwnFlower(k, seatWind(p)) ? ' (bunga kursi sendiri, +1 fan)' : '');
   async function replaceInitialFlowers(p) {
     const pl = G.players[p];
     while (true) {
@@ -192,8 +197,9 @@ const Game = (() => {
       const r = G.wall.pop();
       pl.hand.push(r);
       if (pl.drawn === f.id) pl.drawn = r.id;
-      log(`${pname(p)} membuka ${tileName(f.k)} dan mengambil pengganti dari ujung belakang tembok.`);
-      render(); await wait(260);
+      log(`${pname(p)} membuka ${tileName(f.k)}${flowerNote(p, f.k)} dan mengambil pengganti dari ujung belakang tembok.`);
+      G.msg = `${pname(p)} membuka <b>${tileName(f.k)}</b> dan mengambil kartu pengganti.`;
+      render(); await wait(420);
     }
   }
 
@@ -202,9 +208,10 @@ const Game = (() => {
     let t = fromBack ? G.wall.pop() : G.wall.shift();
     while (t && t.k >= 34) {
       pl.flowers.push(t.k);
-      log(`${pname(p)} mendapat ${tileName(t.k)} → disisihkan, ambil pengganti dari ujung belakang tembok.`);
-      G.msg = `${pname(p)} mendapat bunga/musim, mengambil kartu pengganti.`;
-      render(); await wait(450);
+      log(`${pname(p)} mendapat ${tileName(t.k)}${flowerNote(p, t.k)} → dibuka di depan, ambil pengganti dari ujung belakang tembok.`);
+      G.msg = `${pname(p)} mendapat <b>${tileName(t.k)}</b> — dibuka, lalu mengambil kartu pengganti.`;
+      callout(p, 'BUNGA!');
+      render(); await wait(700);
       t = G.wall.pop();
     }
     if (!t) return null;
@@ -541,7 +548,7 @@ const Game = (() => {
     const side = pos === 'left' || pos === 'right';
     el.className = `seat ${SLOT[p]} pos-${pos}${G.turn === p ? ' active' : ''}`;
 
-    const info = `<div class="seat-info"><span class="wind-badge w${sw}" title="Angin kursi: ${WIND_ID[sw]}">${WIND_CH[sw]}</span><span class="who"><b>${esc(pl.name)}</b><small>${WIND_ID[sw]}${p === G.dealer ? ' · Dealer' : ''}${pl.level ? ` · <span class="lv-tag lv-${pl.level}" title="Tingkat AI">${LEVELS[pl.level].label}</span>` : ''}</small></span><span class="pts" title="Skor">${pl.score}</span><span class="cnt">${pl.hand.length} kartu</span>${pl.flowers.length ? `<span class="flw">${pl.flowers.map(k => tileHTML(k, { cls: 'xxs' })).join('')}</span>` : ''}</div>`;
+    const info = `<div class="seat-info"><span class="wind-badge w${sw}" title="Angin kursi: ${WIND_ID[sw]}">${WIND_CH[sw]}</span><span class="who"><b>${esc(pl.name)}</b><small>${WIND_ID[sw]}${p === G.dealer ? ' · Dealer' : ''}${pl.level ? ` · <span class="lv-tag lv-${pl.level}" title="Tingkat AI">${LEVELS[pl.level].label}</span>` : ''}</small></span><span class="pts" title="Skor">${pl.score}</span><span class="cnt">${pl.hand.length} kartu</span></div>`;
 
     const sorted = pl.hand.slice().sort(sortT);
     let drawnT = null;
@@ -557,7 +564,7 @@ const Game = (() => {
       hand = list.map(() => backHTML(side ? 'sm slat' : 'sm')).join('');
     }
     const msz = human ? 'md' : 'xs';
-    const melds = pl.melds.map(m => `<div class="meld" title="${m.type}">${meldTiles(m).map((k, i) => (m.type === 'kong' && m.concealed && (i === 0 || i === 3)) ? backHTML(msz) : tileHTML(k, { cls: msz })).join('')}</div>`).join('');
+    const melds = flowersHTML(pl.flowers, msz, sw) + pl.melds.map(m => `<div class="meld" title="${m.type}">${meldTiles(m).map((k, i) => (m.type === 'kong' && m.concealed && (i === 0 || i === 3)) ? backHTML(msz) : tileHTML(k, { cls: msz })).join('')}</div>`).join('');
     const ld = G.lastDiscard;
     const dis = pl.discards.map(t => tileHTML(t.k, { cls: 'xs' + (ld && ld.id === t.id ? ' last' : '') })).join('');
 

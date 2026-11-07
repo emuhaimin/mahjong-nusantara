@@ -1,6 +1,6 @@
 /* fx.js — efek visual: notifikasi besar berkedip (CHOW/PONG/KONG/HU/ZIMO) & getar HP */
 const FX = (() => {
-  const KIND = { 'CHOW!': 'chow', 'PONG!': 'pong', 'KONG!': 'kong', 'HU!': 'hu', 'ZIMO!': 'hu' };
+  const KIND = { 'CHOW!': 'chow', 'PONG!': 'pong', 'KONG!': 'kong', 'HU!': 'hu', 'ZIMO!': 'hu', 'BUNGA!': 'flower' };
   const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   function vibrate(pattern) { try { if (navigator.vibrate) navigator.vibrate(pattern); } catch { } }
 
