@@ -18,9 +18,9 @@ const stripBase = p => (BASE && (p === BASE || p.startsWith(BASE + '/')) ? p.sli
 const ROOT = path.resolve(__dirname, '..');
 const MIME = {
   '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8',
-  '.json': 'application/json', '.png': 'image/png', '.svg': 'image/svg+xml', '.ico': 'image/x-icon', '.webp': 'image/webp',
+  '.json': 'application/json', '.webmanifest': 'application/manifest+json', '.png': 'image/png', '.svg': 'image/svg+xml', '.ico': 'image/x-icon', '.webp': 'image/webp',
 };
-const PUBLIC = new Set(['index.html', 'css', 'js', 'assets']); // hanya folder ini yang disajikan
+const PUBLIC = new Set(['index.html', 'css', 'js', 'assets', 'sw.js', 'manifest.webmanifest']); // hanya folder ini yang disajikan
 const LIMITS = {
   maxRooms: +process.env.MAX_ROOMS || 300,       // room aktif maksimal
   maxConnPerIp: +process.env.MAX_CONN_PER_IP || 12,
@@ -38,7 +38,7 @@ const connPerIp = new Map();
 
 /* ---------------- HTTP statis ---------------- */
 const fileCache = new Map(); // path → {mtime, raw, gz, etag}
-const COMPRESS = new Set(['.html', '.js', '.css', '.svg', '.json']);
+const COMPRESS = new Set(['.html', '.js', '.css', '.svg', '.json', '.webmanifest']);
 function serveFile(req, res, file) {
   fs.stat(file, (err, st) => {
     if (err || !st.isFile()) { res.writeHead(404); return res.end('Not found'); }

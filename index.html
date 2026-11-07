@@ -2,7 +2,15 @@
 <html lang="id">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b5236">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/icons/favicon-32.png">
+<link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Mahjong">
 <title>Mahjong Nusantara — Belajar & Main Mahjong</title>
 <meta name="description" content="Belajar mahjong dari nol: menentukan dealer, mengocok, membagi kartu sampai menghitung poin. Main melawan mesin atau tonton simulasi bot.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -34,6 +42,7 @@
         <div class="hero-cta">
           <a class="btn big" href="#learn">Mulai Belajar</a>
           <a class="btn big jade" href="#play">Main vs Mesin</a>
+          <button class="btn big gold" data-install hidden>📲 Pasang Aplikasi</button>
         </div>
       </div>
       <div class="hero-tiles" id="hero-tiles"></div>
@@ -121,7 +130,7 @@
           <label class="dr-row">Kecepatan bot <select id="opt-speed" aria-label="Kecepatan">
             <option value="lambat">Lambat</option><option value="normal">Normal</option><option value="cepat">Cepat</option><option value="kilat">Kilat</option>
           </select></label></div>
-        <div class="dr-sec dr-btns"><button class="btn ghost" data-fullscreen>⛶ Layar penuh</button><button class="btn ghost" id="btn-log">📜 Log permainan</button><button class="btn" id="btn-quit">Keluar permainan</button></div>
+        <div class="dr-sec dr-btns"><button class="btn ghost" data-fullscreen>⛶ Layar penuh</button><button class="btn ghost" data-install hidden>📲 Pasang aplikasi</button><button class="btn ghost" id="btn-log">📜 Log permainan</button><button class="btn" id="btn-quit">Keluar permainan</button></div>
         <div id="log" class="log" hidden></div>
         <nav class="dr-nav"><a href="#home">Beranda</a><a href="#learn">Belajar</a><a href="#play">Main vs Mesin</a><a href="#online">Online</a><a href="#watch">Simulasi Bot</a><a href="#rules">Aturan &amp; Poin</a></nav>
       </aside>
@@ -190,7 +199,7 @@
         <div class="dr-sec"><p class="dr-title">Pengaturan</p>
           <label class="chk"><input type="checkbox" id="on-hint" checked> Saran langkah</label></div>
         <div class="dr-sec chat" id="on-chatbox"><p class="dr-title">Chat room</p><div class="chat-list" id="on-chat"></div><form id="on-chatform"><input id="on-chatin" maxlength="200" placeholder="Tulis pesan…" autocomplete="off"><button class="btn sm">Kirim</button></form></div>
-        <div class="dr-sec dr-btns"><button class="btn ghost" data-fullscreen>⛶ Layar penuh</button><button class="btn ghost" id="on-btn-log">📜 Log permainan</button><button class="btn" id="on-leave2">Keluar room</button></div>
+        <div class="dr-sec dr-btns"><button class="btn ghost" data-fullscreen>⛶ Layar penuh</button><button class="btn ghost" data-install hidden>📲 Pasang aplikasi</button><button class="btn ghost" id="on-btn-log">📜 Log permainan</button><button class="btn" id="on-leave2">Keluar room</button></div>
         <div class="log" id="on-log" hidden></div>
         <nav class="dr-nav"><a href="#home">Beranda</a><a href="#learn">Belajar</a><a href="#play">Main vs Mesin</a><a href="#online">Online</a><a href="#watch">Simulasi Bot</a><a href="#rules">Aturan &amp; Poin</a></nav>
       </aside>
@@ -220,6 +229,7 @@
 <script src="js/game.js"></script>
 <script src="js/learn.js"></script>
 <script src="js/online.js"></script>
+<script src="js/pwa.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>

@@ -1,0 +1,25 @@
+{
+  "name": "Mahjong Nusantara",
+  "short_name": "Mahjong",
+  "description": "Belajar & main mahjong gaya Hong Kong: pelajaran interaktif, main vs bot, dan multipemain online.",
+  "lang": "id",
+  "id": "./",
+  "start_url": "./?app=1#home",
+  "scope": "./",
+  "display": "fullscreen",
+  "display_override": ["fullscreen", "standalone"],
+  "orientation": "any",
+  "background_color": "#0c4630",
+  "theme_color": "#0b5236",
+  "categories": ["games", "education"],
+  "icons": [
+    { "src": "assets/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "assets/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "assets/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Main vs Mesin", "url": "./?app=1#play", "icons": [{ "src": "assets/icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Main Online", "url": "./?app=1#online", "icons": [{ "src": "assets/icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Belajar", "url": "./?app=1#learn", "icons": [{ "src": "assets/icons/icon-192.png", "sizes": "192x192" }] }
+  ]
+}
