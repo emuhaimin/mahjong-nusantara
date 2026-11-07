@@ -1,0 +1,6 @@
+# hasil build lokal (dibuat ulang dengan deploy/make-*.sh)
+deploy-paste/
+mahjong-nusantara.tar.gz
+node_modules/
+.DS_Store
+.claude/

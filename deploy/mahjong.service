@@ -1,0 +1,24 @@
+[Unit]
+Description=Mahjong Nusantara (server game online)
+After=network.target
+
+[Service]
+Type=simple
+User=mahjong
+Group=mahjong
+WorkingDirectory=/opt/mahjong-nusantara
+Environment=NODE_ENV=production
+Environment=HOST=127.0.0.1
+Environment=PORT=__PORT__
+ExecStart=__NODE__ server/server.js
+Restart=always
+RestartSec=3
+# pengamanan dasar: aplikasi hanya bisa membaca filenya sendiri
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+
+[Install]
+WantedBy=multi-user.target

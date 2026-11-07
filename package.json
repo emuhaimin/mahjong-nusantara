@@ -1,0 +1,12 @@
+{
+  "name": "mahjong-nusantara",
+  "version": "1.0.0",
+  "description": "Belajar & main mahjong gaya Hong Kong: offline vs bot, simulasi, dan multipemain online.",
+  "private": true,
+  "scripts": {
+    "start": "node server/server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

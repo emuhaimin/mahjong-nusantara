@@ -1,0 +1,104 @@
+/* app.js — navigasi, beranda, halaman aturan, pengaturan permainan */
+(() => {
+  const $ = s => document.querySelector(s);
+
+  /* ---------- beranda ---------- */
+  $('#hero-tiles').innerHTML = [0, 4, 8, 13, 17, 22, 26, 27, 28, 29, 30, 31, 32, 33, 34, 38].map(k => tileHTML(k, { cls: 'lg' })).join('');
+
+  /* ---------- halaman aturan ---------- */
+  function renderRules() {
+    const el = $('#rules-content');
+    if (el.dataset.ok) return;
+    el.dataset.ok = 1;
+    el.innerHTML = `
+      <section class="card"><p class="eyebrow">Ringkasan</p><h2>Aturan Mahjong Gaya Hong Kong</h2>
+        <p>Dipakai di situs ini dan paling umum dimainkan di Indonesia. Banyak meja punya “aturan rumah” sendiri — angka di bawah adalah standar yang umum dan mudah diubah.</p></section>
+      <section class="card"><h2>1. Perlengkapan</h2>
+        <table class="tbl"><tbody>
+          <tr><td>Wan, Tong, Tiao</td><td>3 suit × 9 angka × 4 lembar</td><td class="num">108</td></tr>
+          <tr><td>Angin 東南西北</td><td>4 jenis × 4 lembar</td><td class="num">16</td></tr>
+          <tr><td>Naga 中發白</td><td>3 jenis × 4 lembar</td><td class="num">12</td></tr>
+          <tr><td>Bunga & Musim</td><td>8 kartu bonus, 1 lembar</td><td class="num">8</td></tr>
+          <tr><td colspan="2"><b>Total</b></td><td class="num">144</td></tr></tbody></table>
+        <p>Ditambah 3 dadu. Empat pemain.</p></section>
+      <section class="card"><h2>2. Persiapan</h2><ol>
+        <li><b>Dealer</b>: setiap pemain melempar 3 dadu, tertinggi menjadi Timur (東). Angin lain berlawanan arah jarum jam: Selatan, Barat, Utara.</li>
+        <li><b>Kocok</b> semua kartu tertelungkup.</li>
+        <li><b>Tembok</b>: tiap pemain menyusun 18 tumpukan × 2 kartu.</li>
+        <li><b>Pecah tembok</b>: dealer melempar 3 dadu; hitung pemain dari dealer (=1) berlawanan arah jarum jam; pada tembok terpilih, hitung tumpukan sebanyak angka dadu dari kanan; ambil mulai tumpukan berikutnya, searah jarum jam.</li>
+        <li><b>Bagi</b>: 4-4-4 kartu bergiliran, lalu 1 kartu tiap pemain, dealer +1. Dealer 14, lainnya 13.</li>
+        <li><b>Bunga</b>: dibuka & diganti dari ujung belakang tembok (dealer dahulu).</li></ol></section>
+      <section class="card"><h2>3. Jalannya permainan</h2><ul>
+        <li>Giliran berlawanan arah jarum jam: ambil 1 kartu, buang 1 kartu.</li>
+        <li>Klaim buangan: <b>Hu</b> &gt; <b>Pong/Kong</b> &gt; <b>Chow</b>. Chow hanya dari pemain sebelummu.</li>
+        <li>Kong (4 kartu sama): tertutup, terbuka dari buangan, atau menambah Pong yang sudah terbuka. Setelah Kong ambil kartu pengganti dari ujung belakang.</li>
+        <li>Tembok habis tanpa pemenang = <b>seri</b>.</li></ul></section>
+      <section class="card"><h2>4. Bentuk menang</h2><ul>
+        <li>4 set (Chow/Pong/Kong) + 1 mata.</li><li>Tujuh Pasang (tertutup).</li><li>Tiga Belas Yatim.</li>
+        <li>Harus memenuhi <b>minimal fan</b> yang disepakati (situs ini: 0, 1, atau 3).</li></ul></section>
+      <section class="card"><h2>5. Tabel fan</h2>
+        <table class="tbl"><thead><tr><th>Pola</th><th>Keterangan</th><th>Fan</th></tr></thead><tbody>${FAN_LIST.map(([n, zh, f, d]) => `<tr><td><b>${n}</b> <span class="zh muted">${zh}</span></td><td>${d}</td><td class="num">${f}</td></tr>`).join('')}</tbody></table>
+        <p class="muted">Batas maksimal 13 fan. Untuk pembayaran, fan dihitung paling tinggi 10.</p></section>
+      <section class="card"><h2>6. Poin & pembayaran</h2>
+        <table class="tbl"><thead><tr><th>Fan</th>${POINT_TABLE.map((_, i) => `<th>${i}${i === 10 ? '+' : ''}</th>`).join('')}</tr></thead><tbody><tr><td><b>Poin</b></td>${POINT_TABLE.map(p => `<td class="num">${p}</td>`).join('')}</tr></tbody></table>
+        <ul><li><b>Zimo</b>: tiap lawan membayar 1 × poin dasar.</li><li><b>Dari buangan</b>: pembuang membayar 2 × poin dasar.</li><li>Setiap pemain mulai dengan 500 poin.</li></ul></section>
+      <section class="card"><h2>7. Pergantian dealer & ronde</h2><ul>
+        <li>Dealer menang atau seri → dealer tetap.</li><li>Pemain lain menang → dealer pindah ke kanan.</li>
+        <li>Setelah keempat pemain menjadi dealer, angin ronde berganti (Timur → Selatan → Barat → Utara).</li></ul></section>`;
+  }
+
+  /* ---------- pengaturan permainan ---------- */
+  function setupMode(m) {
+    $('#cfg-mode').value = m;
+    const watch = m === 'watch';
+    $('#setup-title').textContent = watch ? 'Simulasi: 4 Bot Bermain' : 'Main melawan Mesin';
+    $('#setup-desc').textContent = watch
+      ? 'Empat bot bermain dengan kartu terbuka. Aktifkan Log untuk membaca setiap keputusan: ambil, buang, Chow, Pong, Kong, hingga perhitungan fan.'
+      : 'Kamu duduk di bawah, tiga bot di kanan, atas, dan kiri. Giliran berjalan berlawanan arah jarum jam.';
+    $('#lbl-name').hidden = watch;
+    $('#cfg-hint').parentElement.hidden = watch;
+    $('#cfg-show').parentElement.hidden = watch;
+  }
+  $('#cfg-mode').addEventListener('change', e => setupMode(e.target.value));
+  $('#cfg-start').addEventListener('click', () => {
+    const m = $('#cfg-mode').value;
+    Game.start({
+      mode: m,
+      name: $('#cfg-name').value.trim() || 'Kamu',
+      minFan: +$('#cfg-minfan').value,
+      length: $('#cfg-length').value,
+      speed: m === 'watch' && $('#cfg-speed').value === 'normal' ? 'normal' : $('#cfg-speed').value,
+      hint: $('#cfg-hint').checked,
+      showHands: $('#cfg-show').checked,
+    });
+    if (m === 'watch') $('#log').hidden = false;
+  });
+
+  /* ---------- router ---------- */
+  let prev = null;
+  function route() {
+    const [v, arg] = (location.hash || '#home').slice(1).split('/');
+    const view = ['home', 'learn', 'play', 'watch', 'rules', 'online'].includes(v) ? v : 'home';
+    document.querySelectorAll('.view').forEach(s => { s.hidden = s.id !== 'view-' + (view === 'watch' ? 'play' : view); });
+    document.querySelectorAll('#nav a').forEach(a => a.classList.toggle('active', a.dataset.view === view));
+    if (prev === 'learn' && view !== 'learn') Learn.leave();
+    if (view === 'learn') Learn.show(Learn.current());
+    if (view === 'rules') renderRules();
+    if (prev === 'online' && view !== 'online') Online.exit();
+    if (view === 'online') Online.enter(arg);
+    if (view === 'play' || view === 'watch') {
+      const want = view === 'watch' ? 'watch' : 'play';
+      if (Game.isRunning() && Game.mode() !== want) {
+        if (confirm(`Permainan ${Game.mode() === 'watch' ? 'simulasi' : 'kamu'} masih berjalan. Hentikan dan buka ${want === 'watch' ? 'simulasi bot' : 'mode main'}?`)) Game.quit();
+      }
+      if (!Game.isRunning()) { $('#game').hidden = true; $('#setup').hidden = false; setupMode(want); }
+    }
+    prev = view;
+    window.scrollTo({ top: 0 });
+  }
+  Learn.init();
+  Game.init();
+  Online.init();
+  window.addEventListener('hashchange', route);
+  route();
+})();
