@@ -670,3 +670,12 @@ button,.btn,a,select,input,label{touch-action:manipulation}
 .brand-txt{display:flex;flex-direction:column;line-height:1.1}
 .brand-by{font-size:11px;font-weight:600;letter-spacing:.05em;opacity:.72;margin-top:2px}
 .dr-head .brand-by{color:var(--muted);opacity:1}
+
+/* ---------- nama alias ---------- */
+.pf-head{flex-wrap:wrap}
+.pf-alias{flex-basis:100%;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;background:var(--surface-2);border-radius:12px;padding:10px 12px;font-size:15px}
+.pf-alias em{color:var(--muted);font-style:normal;font-size:13px}
+.alias-field{display:flex;flex-direction:column;gap:6px;font-weight:700;font-size:14px;margin-top:12px}
+.alias-field input{font-size:18px;min-height:52px;padding:12px 14px;border-radius:14px;border:1px solid var(--line);background:var(--surface-2);color:var(--ink);width:100%}
+.alias-hint{display:block;color:var(--muted);font-size:12px;margin-top:6px}
+.alias-err{margin:8px 0 0;font-size:14px}

@@ -3,7 +3,8 @@ const Account = (() => {
   const $ = s => document.querySelector(s);
   const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const QKEY = 'mjn-queue';
-  let user = null, clientId = null, ready = false, gisLoading = null, nudged = false, loadingStats = false;
+  let user = null, clientId = null, ready = false, gisLoading = null, nudged = false, loadingStats = false, lastFill = '';
+  const display = () => (user ? (user.alias || user.given || user.name || 'Pemain') : '');
 
   async function api(path, opt = {}) {
     const r = await fetch(path, { credentials: 'same-origin', headers: opt.body ? { 'content-type': 'application/json' } : {}, ...opt });
@@ -21,7 +22,7 @@ const Account = (() => {
       } catch { /* server tanpa API (mis. hosting statis) → mode tamu */ }
     }
     ready = true;
-    renderChip(); prefill(); flushQueue();
+    renderChip(); prefill(true); flushQueue();
     if (!$('#view-profile').hidden) renderProfile();
   }
   const isLoggedIn = () => !!user;
@@ -29,14 +30,51 @@ const Account = (() => {
     const el = $('#acct-chip');
     if (!el) return;
     el.innerHTML = user
-      ? `${user.picture ? `<img src="${esc(user.picture)}" alt="" referrerpolicy="no-referrer">` : `<span class="av-fallback">${esc(user.given[0] || '?')}</span>`}<span class="acct-name">${esc(user.given)}</span>`
+      ? `${user.picture ? `<img src="${esc(user.picture)}" alt="" referrerpolicy="no-referrer">` : `<span class="av-fallback">${esc(display()[0] || '?')}</span>`}<span class="acct-name">${esc(display())}</span>`
       : `<span class="acct-login">Masuk</span>`;
     el.title = user ? `Profil ${user.name}` : 'Masuk dengan Google';
   }
-  function prefill() {
+  /** isi nama pemain dengan alias. force: saat masuk/ganti alias selalu dipakai (nama lama tersimpan ditimpa) */
+  function prefill(force) {
     if (!user) return;
-    const n = $('#cfg-name'); if (n && (!n.value.trim() || n.value === 'Kamu')) n.value = user.given.slice(0, 14);
-    const o = $('#on-name'); if (o && !o.value.trim()) o.value = user.given.slice(0, 14);
+    const name = display().slice(0, 14);
+    for (const q of ['#cfg-name', '#on-name']) {
+      const el = $(q);
+      if (el && (force || !el.value.trim() || el.value === 'Kamu' || el.value === lastFill || el.value === user.given)) el.value = name;
+    }
+    lastFill = name;
+  }
+
+  /* ---------- nama alias ---------- */
+  function askAlias(first) {
+    return new Promise(resolve => {
+      const w = document.createElement('div');
+      w.className = 'fx-confirm';
+      w.innerHTML = `<form class="fx-confirm-box" role="dialog" aria-modal="true" novalidate>
+          <h3>${first ? '👋 Pilih nama alias kamu' : 'Ubah nama alias'}</h3>
+          <p>Nama ini yang terlihat oleh pemain lain di meja (Main vs Mesin &amp; Online). Nama asli Google-mu tidak ditampilkan.</p>
+          <label class="alias-field"><span>Nama alias</span>
+            <input name="alias" maxlength="14" autocomplete="nickname" autocapitalize="words" enterkeyhint="done" value="${esc(user.alias || user.given || '')}" placeholder="mis. RajaMahjong"></label>
+          <small class="alias-hint">2–14 karakter: huruf, angka, spasi, titik, _ atau -</small>
+          <p class="on-err alias-err" hidden></p>
+          <div class="modal-actions"><button type="button" class="btn ghost" data-v="0">${first ? 'Nanti saja' : 'Batal'}</button><button type="submit" class="btn jade">Simpan alias</button></div></form>`;
+      const form = w.querySelector('form'), input = form.querySelector('input'), err = form.querySelector('.alias-err');
+      const done = v => { w.remove(); resolve(v); };
+      w.addEventListener('click', e => { if (e.target.closest('[data-v="0"]') || e.target === w) done(false); });
+      form.addEventListener('submit', async e => {
+        e.preventDefault();
+        const v = input.value.replace(/\s+/g, ' ').trim();
+        if (!/^[\p{L}\p{N}][\p{L}\p{N} ._-]{1,13}$/u.test(v)) { err.hidden = false; err.textContent = 'Alias 2–14 karakter: huruf, angka, spasi, titik, _ atau -. Harus diawali huruf/angka.'; input.focus(); return; }
+        try {
+          const r = await api('api/me/alias', { method: 'POST', body: JSON.stringify({ alias: v }) });
+          user = r.user; renderChip(); prefill(true);
+          FX.toast(`Nama alias kamu sekarang “${display()}”.`);
+          done(true); renderProfile();
+        } catch (ex) { err.hidden = false; err.textContent = ex.message; }
+      });
+      document.body.appendChild(w);
+      setTimeout(() => { input.focus(); input.select(); }, 50);
+    });
   }
 
   /* ---------- tombol Google ---------- */
@@ -66,8 +104,9 @@ const Account = (() => {
     try {
       const r = await api('api/auth/google', { method: 'POST', body: JSON.stringify({ credential: resp.credential }) });
       user = r.user;
-      FX.toast(`Halo, ${user.given}! Riwayat permainanmu sekarang tersimpan.`);
-      renderChip(); prefill(); flushQueue(); renderProfile();
+      renderChip(); prefill(true); flushQueue(); renderProfile();
+      if (!user.alias) await askAlias(true);
+      FX.toast(`Halo, ${display()}! Riwayat permainanmu sekarang tersimpan.`);
     } catch (e) { FX.toast(e.message); }
   }
   async function logout() {
@@ -168,7 +207,7 @@ const Account = (() => {
     }
     if (loadingStats) return;
     loadingStats = true;
-    el.innerHTML = `<div class="card"><p class="muted">Memuat statistik ${esc(user.given)}…</p></div>`;
+    el.innerHTML = `<div class="card"><p class="muted">Memuat statistik ${esc(display())}…</p></div>`;
     let data;
     try { data = await api('api/stats'); }
     catch (e) { loadingStats = false; if (e.status === 401) { user = null; renderChip(); return renderProfile(); } el.innerHTML = `<div class="card"><p class="on-err">${esc(e.message)}</p></div>`; return; }
@@ -177,9 +216,11 @@ const Account = (() => {
     const arrow = (now, before, goodUp) => { if (now === before) return ''; const up = now > before; return `<em class="${up === goodUp ? 'plus' : 'minus'}">${up ? '▲' : '▼'}</em>`; };
     el.innerHTML = `
       <div class="card pf-head">
-        ${user.picture ? `<img class="pf-av" src="${esc(user.picture)}" alt="" referrerpolicy="no-referrer">` : `<span class="pf-av av-fallback">${esc(user.given[0] || '?')}</span>`}
-        <div class="pf-id"><h2>${esc(user.name)}</h2><small>${esc(user.email)}</small></div>
+        ${user.picture ? `<img class="pf-av" src="${esc(user.picture)}" alt="" referrerpolicy="no-referrer">` : `<span class="pf-av av-fallback">${esc(display()[0] || '?')}</span>`}
+        <div class="pf-id"><h2>${esc(display())}</h2><small>${esc(user.name)} · ${esc(user.email)}</small></div>
         <button class="btn ghost sm" id="pf-logout">Keluar akun</button>
+        <div class="pf-alias"><span>Nama di meja: <b>${esc(display())}</b>${user.alias ? '' : ' <em>(belum memilih alias)</em>'}</span>
+          <button class="btn jade sm" id="pf-alias">${user.alias ? 'Ubah alias' : 'Pilih alias'}</button></div>
       </div>
       ${s.hands ? `<div class="pf-tiles">
         ${tileStat('Sesi', s.sessions, `${s.byMode.bot || 0} vs Mesin · ${s.byMode.online || 0} Online`)}
@@ -205,7 +246,8 @@ const Account = (() => {
         <p class="muted">Data disimpan di server mahjong.rupaone.io dan tidak dibagikan ke pihak lain. <a href="privacy.html" target="_blank" rel="noopener">Kebijakan privasi</a></p>
         <button class="btn ghost" id="pf-delete">Hapus akun &amp; semua riwayat</button></section>`;
     $('#pf-logout').onclick = logout;
+    $('#pf-alias').onclick = () => askAlias(false);
     $('#pf-delete').onclick = deleteAccount;
   }
-  return { init, isLoggedIn, submit, renderProfile, user: () => user };
+  return { init, isLoggedIn, submit, renderProfile, user: () => user, displayName: display };
 })();

@@ -54,7 +54,15 @@ function getCookie(req, name) {
 }
 const isHttps = req => req.headers['x-forwarded-proto'] === 'https' || !!req.socket.encrypted;
 const setCookie = (req, val, maxAge) => `${COOKIE}=${encodeURIComponent(val)}; Path=${cookiePath()}; Max-Age=${maxAge}; HttpOnly; SameSite=Lax${isHttps(req) ? '; Secure' : ''}`;
-const publicUser = u => u && { id: u.id, name: u.name, given: u.given || u.name.split(' ')[0], email: u.email, picture: u.picture, created: u.created };
+const publicUser = u => u && {
+  id: u.id, name: u.name, given: u.given || u.name.split(' ')[0], alias: u.alias || null,
+  display: u.alias || u.given || u.name.split(' ')[0], email: u.email, picture: u.picture, created: u.created,
+};
+/** rapikan & periksa alias: 2–14 karakter, huruf/angka/spasi . _ - */
+function cleanAlias(v) {
+  const a = String(v == null ? '' : v).normalize('NFC').replace(/\s+/g, ' ').trim();
+  return /^[\p{L}\p{N}][\p{L}\p{N} ._-]{1,13}$/u.test(a) ? a : null;
+}
 function readJson(req, limit = 65536) {
   return new Promise((resolve, reject) => {
     let size = 0; const chunks = [];
@@ -116,6 +124,13 @@ async function handleApi(req, res, url) {
       if (!rec) return send(400, { error: 'Data sesi tidak valid.' });
       store.addGame(user.id, rec);
       return send(200, { ok: true });
+    }
+    if (url === '/api/me/alias' && m === 'POST') {
+      if (limited('alias:' + user.id, 30, 3600000)) return send(429, { error: 'Terlalu sering mengganti alias. Coba lagi nanti.' });
+      const body = await readJson(req, 2048);
+      const alias = cleanAlias(body.alias);
+      if (!alias) return send(400, { error: 'Alias 2–14 karakter: huruf, angka, spasi, titik, garis bawah, atau tanda minus.' });
+      return send(200, { user: publicUser(store.setAlias(user.id, alias)) });
     }
     if (url === '/api/me' && m === 'DELETE') {
       console.log(`[auth] akun dihapus: ${user.email}`);

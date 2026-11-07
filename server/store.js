@@ -57,6 +57,14 @@ class Store {
     this._save('users.json');
     return u;
   }
+  /** nama alias yang dipakai di meja (2–14 huruf/angka/spasi . _ -) */
+  setAlias(id, alias) {
+    const u = this.users[id];
+    if (!u) return null;
+    u.alias = alias;
+    this._save('users.json');
+    return u;
+  }
   deleteUser(id) {
     delete this.users[id];
     for (const [k, s] of Object.entries(this.sessions)) if (s.userId === id) delete this.sessions[k];
