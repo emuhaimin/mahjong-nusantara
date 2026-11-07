@@ -721,7 +721,9 @@ const Game = (() => {
     $('#opt-show').addEventListener('change', e => { if (cfg) { cfg.showHands = e.target.checked; render(); } });
     $('#opt-speed').addEventListener('change', e => { if (cfg) cfg.speed = e.target.value; });
     $('#btn-log').addEventListener('click', () => { const l = $('#log'); l.hidden = !l.hidden; renderLog(); });
-    $('#btn-quit').addEventListener('click', () => { if (!G || confirm('Keluar dari permainan ini?')) quit(); });
+    $('#btn-quit').addEventListener('click', async () => {
+      if (!G || await FX.ask('Keluar dari permainan?', { text: 'Permainan yang sedang berjalan akan dihentikan.', yes: 'Keluar', no: 'Lanjut main' })) quit();
+    });
   }
 
   return { init, start, stop, quit, isRunning, mode };

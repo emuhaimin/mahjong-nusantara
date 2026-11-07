@@ -79,12 +79,63 @@
   const closeDrawers = () => games.forEach(g => g.classList.remove('dr-open'));
   function syncInGame() {
     const on = (!$('#view-play').hidden && !$('#game').hidden) || (!$('#view-online').hidden && !$('#on-game').hidden);
+    const was = document.body.classList.contains('in-game');
     document.body.classList.toggle('in-game', on);
+    document.documentElement.classList.toggle('in-game', on);
+    if (on && !was) armBackGuard();
     if (!on) {
       closeDrawers();
       if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(() => { });
+      if (was) disarmBackGuard();
     }
   }
+
+  /* ---------- penjaga sesi: Back & refresh tidak sengaja ---------- */
+  // Saat bermain, satu entri riwayat "penjaga" ditambahkan. Tombol/gesture Back hanya
+  // menghapus entri itu → kita pasang lagi dan tanyakan dulu apakah benar mau keluar.
+  let guarded = false, skipPop = false;
+  const inGame = () => document.body.classList.contains('in-game');
+  function armBackGuard() {
+    if (guarded) return;
+    history.pushState({ mjnGuard: true }, '', location.href);
+    guarded = true;
+  }
+  function disarmBackGuard() {
+    if (guarded && history.state && history.state.mjnGuard) { skipPop = true; history.back(); }
+    guarded = false;
+  }
+  async function exitCurrentGame() {
+    if (!$('#on-game').hidden && !$('#view-online').hidden) Online.leave();
+    else Game.quit();
+  }
+  window.addEventListener('popstate', async () => {
+    if (skipPop) { skipPop = false; return; }
+    if (!inGame()) { guarded = false; return; }
+    history.pushState({ mjnGuard: true }, '', location.href);   // tahan di meja
+    guarded = true;
+    const g = games.find(x => x.classList.contains('dr-open'));
+    if (g) { g.classList.remove('dr-open'); return; }              // Back pertama: tutup menu dulu
+    if (FX.isAsking() || !$('#modal').hidden) return;
+    const online = !$('#on-game').hidden && !$('#view-online').hidden;
+    const ok = await FX.ask(online ? 'Keluar dari room?' : 'Keluar dari permainan?', {
+      text: online ? 'Kursimu akan dimainkan bot. Kamu bisa masuk lagi dengan kode room yang sama.' : 'Permainan yang sedang berjalan akan dihentikan.',
+      yes: 'Keluar', no: 'Lanjut main',
+    });
+    if (ok && inGame()) exitCurrentGame();
+  });
+  // refresh lewat keyboard diblokir saat bermain
+  document.addEventListener('keydown', e => {
+    if (!inGame()) return;
+    const k = e.key.toLowerCase();
+    if (k === 'f5' || ((e.metaKey || e.ctrlKey) && k === 'r')) {
+      e.preventDefault();
+      FX.toast('Refresh dinonaktifkan saat bermain. Keluar lewat menu ☰ jika ingin berhenti.');
+    }
+  }, true);
+  // menutup tab / refresh dari tombol browser → browser menampilkan peringatan
+  window.addEventListener('beforeunload', e => {
+    if (inGame()) { e.preventDefault(); e.returnValue = ''; }
+  });
   const mo = new MutationObserver(syncInGame);
   ['#game', '#on-game', '#view-play', '#view-online'].forEach(q => mo.observe($(q), { attributes: true, attributeFilter: ['hidden'] }));
   document.addEventListener('click', e => {

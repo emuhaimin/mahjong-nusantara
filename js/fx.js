@@ -26,5 +26,33 @@ const FX = (() => {
     setTimeout(() => el.remove(), 2300);
     if (kind === 'hu') vibrate([90, 60, 90, 60, 160]);
   }
-  return { callout, vibrate };
+  /** Dialog konfirmasi (Promise<boolean>). Pengganti confirm() bawaan yang lebih rapi di HP. */
+  let openConfirm = null;
+  function ask(title, { text = '', yes = 'Ya', no = 'Batal', danger = true } = {}) {
+    if (openConfirm) return openConfirm;
+    openConfirm = new Promise(res => {
+      const w = document.createElement('div');
+      w.className = 'fx-confirm';
+      w.innerHTML = `<div class="fx-confirm-box" role="alertdialog" aria-modal="true"><h3>${esc(title)}</h3>${text ? `<p>${esc(text)}</p>` : ''}
+        <div class="modal-actions"><button class="btn ghost" data-v="0">${esc(no)}</button><button class="btn${danger ? '' : ' jade'}" data-v="1">${esc(yes)}</button></div></div>`;
+      const done = v => { w.remove(); document.removeEventListener('keydown', key, true); openConfirm = null; res(v); };
+      const key = e => { if (e.key === 'Escape') { e.stopPropagation(); done(false); } };
+      w.addEventListener('click', e => { const b = e.target.closest('[data-v]'); if (b) done(b.dataset.v === '1'); else if (e.target === w) done(false); });
+      document.addEventListener('keydown', key, true);
+      document.body.appendChild(w);
+      w.querySelector('[data-v="0"]').focus();
+    });
+    return openConfirm;
+  }
+  const isAsking = () => !!openConfirm;
+
+  /** Pesan singkat di bawah layar */
+  function toast(msg) {
+    const t = document.createElement('div');
+    t.className = 'fx-toast'; t.textContent = msg;
+    document.body.appendChild(t);
+    setTimeout(() => t.remove(), 2600);
+  }
+
+  return { callout, vibrate, ask, isAsking, toast };
 })();

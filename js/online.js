@@ -283,7 +283,9 @@ const Online = (() => {
 
   /* ---------------- aksi pengguna ---------------- */
   function act(a) { send({ t: 'act', act: a }); }
+  let leftCode = null; // room yang baru saja ditinggalkan → jangan otomatis masuk lagi lewat tombol Back
   function leave() {
+    leftCode = load().code || (S && S.code) || null;
     send({ t: 'leave' });
     save({ code: null }); S = null; closeModal(); render();
     history.replaceState(null, '', '#online');
@@ -296,6 +298,7 @@ const Online = (() => {
   }
   function join(code) {
     code = (code || $('#on-code').value).trim().toUpperCase();
+    leftCode = null;
     if (!/^[A-Z]{4}$/.test(code)) return status('Kode room harus 4 huruf.', true);
     const name = myName();
     save({ name, code });
@@ -310,7 +313,9 @@ const Online = (() => {
     $('#on-code').addEventListener('keydown', e => { if (e.key === 'Enter') join(); });
     $('#on-start').onclick = () => send({ t: 'start' });
     $('#on-leave1').onclick = leave;
-    $('#on-leave2').onclick = () => { if (confirm('Keluar dari room? Kursimu akan dimainkan bot.')) leave(); };
+    $('#on-leave2').onclick = async () => {
+      if (await FX.ask('Keluar dari room?', { text: 'Kursimu akan dimainkan bot. Kamu bisa masuk lagi dengan kode room yang sama.', yes: 'Keluar', no: 'Lanjut main' })) leave();
+    };
     $('#on-copy').onclick = async () => {
       const v = $('#on-link').value;
       try { await navigator.clipboard.writeText(v); $('#on-copy').textContent = 'Tersalin ✓'; }
@@ -378,12 +383,13 @@ const Online = (() => {
       $('#on-code').value = code;
       const o = load();
       if (o.code !== code) {
-        if (o.name || $('#on-name').value.trim()) join(code);
+        if (code === leftCode) status(`Kamu sudah keluar dari room ${code}. Tekan Gabung jika ingin masuk lagi.`);
+        else if (o.name || $('#on-name').value.trim()) join(code);
         else status(`Isi nama kamu lalu tekan Gabung untuk masuk ke room ${code}.`);
       }
     }
     render();
   }
   function exit() { active = false; if (!$('#modal').hidden && modalKey) $('#modal').hidden = true; modalKey = ''; }
-  return { init, enter, exit };
+  return { init, enter, exit, leave };
 })();
