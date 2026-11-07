@@ -104,7 +104,8 @@ const Game = (() => {
 
   async function playHand() {
     G.handNo++;
-    for (const pl of G.players) { pl.hand = []; pl.melds = []; pl.flowers = []; pl.discards = []; pl.drawn = null; }
+    for (const pl of G.players) { pl.hand = []; pl.melds = []; pl.flowers = []; pl.discards = []; pl.drawn = null; pl.lastSeq = 0; }
+    G.hist = []; G.seq = 0;
     G.lastDiscard = null; G.turn = G.dealer; G.ui = null; G.reveal = false;
     const tiles = []; let id = 0;
     for (let k = 0; k < 34; k++) for (let c = 0; c < 4; c++) tiles.push({ id: id++, k });
@@ -301,6 +302,9 @@ const Game = (() => {
     const t = pl.hand.splice(i, 1)[0];
     pl.discards.push(t); pl.drawn = null;
     G.lastDiscard = { p, id: t.id };
+    G.seq = (G.seq || 0) + 1;
+    G.hist.push({ k: t.k, seq: G.seq, p });     // riwayat buangan (termasuk yang nanti diklaim) untuk AI Expert
+    pl.lastSeq = G.seq;
     log(`${pname(p)} membuang ${tileName(t.k)}.`);
     return t;
   }
@@ -547,10 +551,11 @@ const Game = (() => {
   /* ---------- pertahanan (dipakai level Expert) ---------- */
   /** seberapa besar kemungkinan lawan q sudah Ting (0–1), dari Pong/Chow terbuka & sisa tembok */
   function threatOf(q) {
-    const m = G.players[q].melds.filter(x => !x.concealed).length, w = G.wall.length;
-    let t = m >= 3 ? .85 : m === 2 ? .45 : m === 1 ? .2 : .1;
-    if (w < 40) t += .15;
-    if (w < 20) t += .2;
+    const pl = G.players[q], m = pl.melds.filter(x => !x.concealed).length, w = G.wall.length, n = pl.discards.length;
+    let t = m >= 3 ? .85 : m === 2 ? .5 : m === 1 ? .25 : .1;
+    if (n >= 6) t += .15;                       // makin lama bermain, makin mungkin sudah Ting
+    if (n >= 10) t += .2;
+    if (w < 20) t += .15;
     return Math.min(1, t);
   }
   /** suit yang sedang dikumpulkan lawan q (Flush terlihat dari meld terbuka), atau null */
@@ -563,6 +568,9 @@ const Game = (() => {
   /** risiko membuang kartu k ke lawan q (≈0 aman … 1+ berbahaya) */
   function dangerTo(q, k, left) {
     if (left <= 0) return 0.05;                 // semua lembar sudah terlihat → hampir pasti aman
+    // kartu ini sudah dibuang orang lain SETELAH giliran terakhir q dan q tidak Hu → tangan q belum berubah, jadi aman
+    const ls = G.players[q].lastSeq || 0;
+    if (G.hist.some(h => h.k === k && h.seq > ls && h.p !== q)) return 0.02;
     let d;
     if (k >= 27) d = left === 1 ? .12 : left === 2 ? .45 : .7;
     else {
@@ -573,8 +581,6 @@ const Game = (() => {
       if (fs != null) d *= Math.floor(k / 9) === fs ? 2 : .35;
     }
     if (G.players[q].discards.some(t => t.k === k)) d *= .45;   // lawan sendiri membuangnya → jarang ditunggu
-    const ld = G.lastDiscard;
-    if (ld && ld.p !== q && G.players[ld.p].discards.length && G.players[ld.p].discards[G.players[ld.p].discards.length - 1].k === k) d *= .7;  // baru saja lolos
     return d;
   }
 
@@ -583,11 +589,43 @@ const Game = (() => {
      medium : mengejar Ting dengan benar, kadang keliru, jarang mengejar Flush
      hard   : bot standar (versi lama): hitung peluang kartu, bias kartu bernilai, kejar Flush
      expert : seperti hard + selalu kejar fan besar + membaca lawan & bertahan saat lawan Ting */
+  /** jumlah tertimbang kartu bagus 2 langkah ke depan setelah membuang k (shanten s) */
+  function lookahead2(c, open, vis, k, s) {
+    c[k]--;
+    let total = 0;
+    for (let y = 0; y < 34; y++) {
+      const left = 4 - c[y] - vis[y];
+      if (left <= 0) continue;
+      c[y]++;
+      if (shantenAll(c, open) < s) {
+        let best = 0;                           // buangan terbaik berikutnya → hitung kartu yang memajukan lagi
+        for (let z = 0; z < 34; z++) {
+          if (!c[z] || z === y) continue;
+          c[z]--;
+          if (shantenAll(c, open) === s - 1) {
+            let u = 0;
+            for (let w = 0; w < 34; w++) {
+              const l2 = 4 - c[w] - vis[w] - (w === y ? 1 : 0);
+              if (l2 <= 0) continue;
+              c[w]++; if (shantenAll(c, open) < s - 1) u += l2; c[w]--;
+            }
+            if (u > best) best = u;
+          }
+          c[z]++;
+        }
+        total += left * best;
+      }
+      c[y]--;
+    }
+    c[k]++;
+    return total;
+  }
+
   const LEVELS = {
-    easy: { label: 'Easy', ic: '🟢', sloppy: .5, ukeire: false, flush: 0, defense: false },
-    medium: { label: 'Medium', ic: '🟡', sloppy: .12, ukeire: true, flush: .2, defense: false },
+    easy: { label: 'Easy', ic: '🟢', sloppy: .3, ukeire: false, flush: 0, defense: false },
+    medium: { label: 'Medium', ic: '🟡', sloppy: .3, ukeire: true, flush: 0, defense: false },
     hard: { label: 'Hard', ic: '🟠', sloppy: 0, ukeire: true, flush: .5, defense: false },
-    expert: { label: 'Expert', ic: '🔴', sloppy: 0, ukeire: true, flush: 1, defense: true },
+    expert: { label: 'Expert', ic: '🔴', sloppy: 0, ukeire: true, flush: 1, defense: true, lookahead: true },
   };
   const lvOf = p => LEVELS[(G.players[p] && G.players[p].level) || 'hard'] || LEVELS.hard;
   const pick = a => a[rnd(a.length)];
@@ -612,8 +650,8 @@ const Game = (() => {
       // Expert bertahan: kartu yang menjauhkan Ting tetap dipertimbangkan bila lawan berbahaya
       const opps = L.defense ? [0, 1, 2, 3].filter(q => q !== p).map(q => ({ q, t: threatOf(q) })) : [];
       const maxT = opps.reduce((m, o) => Math.max(m, o.t), 0);
-      const defend = L.defense && maxT >= .4;
-      const cands = all.filter(x => x.s <= minS + (defend ? 1 : 0));
+      const fold = L.defense && minS >= 2 && maxT >= .45;     // boleh menjauh dari Ting demi membuang kartu aman
+      const cands = all.filter(x => x.s <= minS + (fold ? 1 : 0));
       for (const x of cands) {
         let u = 0;
         if (L.ukeire && x.s === minS) {
@@ -629,14 +667,25 @@ const Game = (() => {
         }
         x.u = u;
         x.score = (L.ukeire ? u : 0) + discardBias(p, x.k, c, fl) + (L.ukeire ? 0 : Math.random() * 2);
-        if (defend) {
+        if (L.defense) {                       // Expert selalu menimbang bahaya; makin jauh dari Ting makin hati-hati
           const left = 4 - c[x.k] - vis[x.k];   // lembar yang belum terlihat dari sudut pandang bot
           const danger = opps.reduce((sum, o) => sum + o.t * dangerTo(o.q, x.k, left), 0);
-          const w = minS <= 0 ? 5 : minS === 1 ? 14 : 34;       // makin jauh dari Ting → makin memilih aman
+          const w = minS <= 0 ? 4 : minS === 1 ? 10 : 36;
           x.score -= danger * w + (x.s - minS) * 14;
         }
       }
       cands.sort((a, b) => b.score - a.score);
+      // Expert melihat 2 langkah: dari 3 kandidat teratas, kartu mana yang setelah ditarik kartu bagus
+      // masih menyisakan banyak kartu bagus berikutnya (bentuk tangan lebih lentur)
+      if (L.lookahead && minS >= 1 && cands.length > 1) {
+        const top = cands.filter(x => x.s === minS).slice(0, 3);
+        if (top.length > 1) {
+          for (const x of top) x.u2 = lookahead2(c, open, vis, x.k, x.s);
+          top.forEach(x => { x.score2 = x.score + x.u2 / 12; });
+          top.sort((a, b) => b.score2 - a.score2);
+          return choose(top[0].k);
+        }
+      }
       return choose(cands[0].k);
     },
     turn(p, win, kongs) {
@@ -656,9 +705,10 @@ const Game = (() => {
       if (o.win) return { type: 'win' };
       const L = LEVELS[level] || lvOf(p);
       if (L === LEVELS.easy) {                 // Easy: klaim karena “kelihatannya bagus”, tanpa menghitung fan
-        if (o.kong) return { type: 'kong' };
-        if (o.pong && Math.random() < .7) return { type: 'pong' };
-        if (o.chows.length && Math.random() < .45) return { type: 'chow', s: pick(o.chows) };
+        const ok = cfg.minFan === 0 || fanEstimate(p, tile.k) >= cfg.minFan || isValue(p, tile.k);
+        if (o.kong && ok) return { type: 'kong' };
+        if (o.pong && ok && Math.random() < .6) return { type: 'pong' };
+        if (o.chows.length && (cfg.minFan === 0 || fanEstimate(p, null) >= cfg.minFan) && Math.random() < .35) return { type: 'chow', s: pick(o.chows) };
         return null;
       }
       const pl = G.players[p], k = tile.k, open = pl.melds.length;
