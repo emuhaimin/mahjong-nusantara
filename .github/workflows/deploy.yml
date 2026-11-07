@@ -1,0 +1,64 @@
+# Deploy otomatis ke VPS setiap ada push / merge ke main.
+# Butuh 2 repository secret (Settings → Secrets and variables → Actions):
+#   VPS_HOST    = alamat IP VPS (mis. 187.77.115.96)
+#   VPS_SSH_KEY = kunci privat SSH yang kunci publiknya ada di ~/.ssh/authorized_keys milik root di VPS
+# Di VPS, /root/mahjong-nusantara harus hasil `git clone` repo ini (lihat README).
+name: Deploy ke VPS
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:        # tombol "Run workflow" di tab Actions untuk deploy manual
+
+concurrency:
+  group: deploy-vps
+  cancel-in-progress: false # deploy berikutnya menunggu, tidak memotong yang sedang jalan
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Siapkan kunci SSH
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+        run: |
+          if [ -z "$VPS_HOST" ] || [ -z "$VPS_SSH_KEY" ]; then
+            echo "::error::Secret VPS_HOST / VPS_SSH_KEY belum diatur di Settings → Secrets and variables → Actions."
+            exit 1
+          fi
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          printf '%s\n' "$VPS_SSH_KEY" | tr -d '\r' > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -T 20 -H "$VPS_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Tarik kode terbaru & pasang di VPS
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+        run: |
+          ssh -i ~/.ssh/deploy_key -o BatchMode=yes -o ConnectTimeout=20 "root@$VPS_HOST" 'bash -se' <<'REMOTE'
+          set -euo pipefail
+          cd /root/mahjong-nusantara
+          git fetch --prune origin main
+          git checkout -q main
+          git reset --hard -q origin/main
+          echo "Versi: $(git log -1 --format='%h %s')"
+          bash deploy/install.sh
+          REMOTE
+
+      - name: Periksa situs hidup
+        run: |
+          for i in 1 2 3 4 5 6; do
+            if curl -fsS --max-time 10 https://mahjong.rupaone.io/health; then echo; exit 0; fi
+            sleep 5
+          done
+          echo "::error::https://mahjong.rupaone.io/health tidak menjawab setelah deploy."
+          exit 1
+
+      - name: Hapus kunci SSH
+        if: always()
+        run: rm -f ~/.ssh/deploy_key

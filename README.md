@@ -57,6 +57,13 @@ cd /root/mahjong-nusantara && bash deploy/install.sh
 cd /root/mahjong-nusantara && git pull && bash deploy/install.sh
 ```
 
+**Deploy otomatis (GitHub Actions):** `.github/workflows/deploy.yml` menjalankan langkah di atas lewat SSH setiap ada push atau merge ke `main`, lalu memeriksa `https://mahjong.rupaone.io/health`. Bisa juga dijalankan manual dari tab *Actions* → *Deploy ke VPS* → *Run workflow*. Persiapan sekali saja:
+
+1. Di VPS: `ssh-keygen -t ed25519 -f ~/.ssh/github_deploy -N "" && cat ~/.ssh/github_deploy.pub >> ~/.ssh/authorized_keys`
+2. Di GitHub → *Settings* → *Secrets and variables* → *Actions*, tambahkan `VPS_HOST` (IP VPS) dan `VPS_SSH_KEY` (isi `~/.ssh/github_deploy`).
+
+Catatan: setiap deploy menyalakan ulang layanan `mahjong`, jadi room Online yang sedang berjalan ikut terputus.
+
 **Jika VPS memakai HestiaCP (rupaone.io):** `install.sh` otomatis mendeteksi Hestia. Ia tidak menyentuh nginx/certbot secara langsung, melainkan memasang template proxy `mahjong-node`, menambah web domain di Hestia, lalu meminta SSL lewat Let's Encrypt bawaan Hestia. Cara upload tanpa SSH:
 1. Di Mac: `./deploy/make-package.sh` → `mahjong-nusantara.tar.gz`.
 2. Upload file itu lewat File Manager Hestia ke folder home user.
