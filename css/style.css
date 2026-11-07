@@ -466,3 +466,135 @@ html.in-game,body.in-game{overscroll-behavior:none;-webkit-tap-highlight-color:t
   body.in-game .table{grid-template-columns:118px minmax(0,1fr) 118px}
   body.in-game .c-round small{display:none}
 }
+
+/* =====================================================================
+   VERSI HP (mobile-first): navigasi bawah, tombol & form besar ramah jempol
+   ===================================================================== */
+.tabbar{display:none}
+button,.btn,a,select,input,label{touch-action:manipulation}
+
+/* layar sentuh (HP & tablet, termasuk landscape): target sentuh minimal ±48px */
+@media (pointer:coarse){
+  .btn{min-height:48px;padding:12px 18px;font-size:16px;border-radius:14px}
+  .btn.sm{min-height:42px;padding:9px 14px;font-size:14px}
+  .btn.big{min-height:56px;font-size:17px}
+  select,input:not([type=checkbox]):not([type=radio]){min-height:52px;font-size:17px;border-radius:14px;padding:12px 14px}
+  .dr-nav a{padding:13px 10px;font-size:16px}
+  .drawer .btn{min-height:50px}
+  .ab-btns{gap:10px}
+}
+
+@media (max-width:820px) and (orientation:portrait), (max-width:639px){
+  body{font-size:16px}
+  main{padding-bottom:calc(78px + env(safe-area-inset-bottom))}
+  body.in-game main{padding-bottom:0}
+
+  .btn{min-height:48px;padding:12px 18px;font-size:16px;border-radius:14px}
+  .btn.sm{min-height:42px;padding:9px 14px;font-size:14px}
+  .btn.big{min-height:56px;font-size:17px}
+  select,input:not([type=checkbox]):not([type=radio]){min-height:52px;font-size:17px!important;border-radius:14px;padding:12px 14px}
+  .dr-nav a{padding:13px 10px;font-size:16px}
+  /* --- header ringkas + navigasi bawah --- */
+  .topbar{min-height:56px;padding-top:max(8px,env(safe-area-inset-top));padding-bottom:8px;flex-wrap:nowrap}
+  .brand{font-size:18px}
+  #nav{display:none}
+  .tabbar{display:grid;grid-template-columns:repeat(5,1fr);position:fixed;left:0;right:0;bottom:0;z-index:55;
+    background:var(--surface);border-top:1px solid var(--line);box-shadow:0 -6px 20px rgba(0,0,0,.08);
+    padding:6px max(6px,env(safe-area-inset-right)) calc(6px + env(safe-area-inset-bottom)) max(6px,env(safe-area-inset-left))}
+  .tabbar a{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-height:54px;border-radius:14px;
+    text-decoration:none;color:var(--muted);font-size:12px;font-weight:700}
+  .tabbar a svg{width:25px;height:25px}
+  .tabbar a.active{color:var(--accent);background:color-mix(in srgb,var(--accent) 10%,transparent)}
+  .tabbar a:active{transform:scale(.96)}
+  body.in-game .tabbar{display:none}
+
+  /* --- umum --- */
+  .view{padding:18px 16px 24px}
+  .card{border-radius:18px;padding:18px}
+  .eyebrow{font-size:12px}
+  .btn.big{width:100%}
+  .muted{font-size:15px}
+
+  /* --- beranda --- */
+  .hero{display:flex;flex-direction:column;gap:16px;padding:4px 0 22px}
+  .hero-tiles{order:-1;transform:none;flex-wrap:nowrap;justify-content:center;gap:4px;padding:16px 10px;border-width:6px;border-radius:20px;overflow:hidden}
+  .hero-tiles .tile{font-size:15px}
+  .hero-tiles .tile:nth-child(n+7){display:none}
+  .hero h1{font-size:27px;line-height:1.18}
+  .lead{font-size:16px}
+  .hero-cta{flex-direction:column;gap:10px;margin-top:6px}
+  .cards{grid-template-columns:1fr;gap:10px}
+  .card.link{display:grid;grid-template-columns:52px 1fr 16px;grid-template-areas:"ic t ch" "ic p ch";align-items:center;column-gap:14px;padding:16px;min-height:84px}
+  .card.link .card-ic{grid-area:ic;width:52px;height:52px;border-radius:14px;background:var(--surface-2);display:grid;place-items:center;font-size:26px}
+  .card.link h3{grid-area:t;margin:0;font-size:17px}
+  .card.link p{grid-area:p;font-size:14px;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .card.link::after{content:'›';grid-area:ch;font-size:26px;color:var(--muted);line-height:1}
+  .note{display:none}
+
+  /* --- form (Main vs Mesin, Online) --- */
+  .setup{border:0;background:transparent;padding:0}
+  .setup h2{font-size:25px}
+  .form-grid{grid-template-columns:1fr;gap:16px;margin:18px 0 22px}
+  .form-grid label{font-size:15px;font-weight:700;gap:8px}
+  select{-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235f6b64' stroke-width='2.5' stroke-linecap='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat:no-repeat;background-position:right 14px center;background-size:20px;padding-right:44px!important;width:100%}
+  input:not([type=checkbox]){width:100%}
+  /* centang → saklar besar */
+  .chk{display:flex!important;align-items:center;gap:12px;flex-direction:row-reverse!important;justify-content:space-between!important;min-height:56px;padding:10px 16px;border:1px solid var(--line);border-radius:14px;background:var(--surface);font-size:16px!important}
+  .chk input{-webkit-appearance:none;appearance:none;flex:none;width:52px!important;height:30px!important;border-radius:30px;background:#c9c2b3;position:relative;cursor:pointer;transition:background .2s;margin:0}
+  .chk input::after{content:'';position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:transform .2s}
+  .chk input:checked{background:var(--jade)}
+  .chk input:checked::after{transform:translateX(22px)}
+  .chk-col{gap:10px}
+  #cfg-start{position:sticky;bottom:calc(84px + env(safe-area-inset-bottom));box-shadow:0 8px 24px rgba(179,38,46,.35)}
+
+  /* --- online: lobby & ruang tunggu --- */
+  .on-grid{grid-template-columns:1fr;gap:12px}
+  .on-grid .card{background:var(--surface)}
+  .on-grid .card h3{font-size:19px}
+  #on-code{font-size:26px!important;text-align:center;letter-spacing:.35em!important;min-height:60px}
+  .code-big{font-size:42px}
+  #on-room h2{font-size:22px}
+  .share{flex-direction:column;align-items:stretch}
+  .share input{min-width:0;font-size:15px}
+  .share .btn{width:100%}
+  .seat-item{min-height:58px;font-size:16px;padding:12px 16px;border-radius:14px}
+  #on-room .stage-ctrl{flex-direction:column}
+  #on-room .stage-ctrl .btn{width:100%}
+
+  /* --- belajar --- */
+  .learn-steps{gap:6px;margin:0 -16px;padding:0 16px 6px;scrollbar-width:none}
+  .learn-steps::-webkit-scrollbar{display:none}
+  .learn-steps button{min-height:44px;padding:8px 14px;border:1px solid var(--line);border-radius:22px;background:var(--surface)}
+  .learn-steps button .n{width:26px;height:26px}
+  .learn-main{border:0;background:transparent;padding:6px 0 0}
+  .learn-main h2{font-size:24px}
+  .learn-body{font-size:17px;line-height:1.6}
+  .learn-body .tip{font-size:16px}
+  .learn-nav{position:sticky;bottom:calc(72px + env(safe-area-inset-bottom));z-index:10;background:var(--bg);margin:10px -16px 0;padding:10px 16px;border-top:1px solid var(--line);gap:10px}
+  .learn-nav .btn{flex:1;min-height:54px;font-size:16px}
+  .stage-ctrl .btn{flex:1 1 auto}
+  .quiz-opts .btn{flex:1 1 40%}
+  .tile-row figure{width:calc((100% - 24px) / 5)}
+  .stage-note{font-size:16px}
+
+  /* --- aturan --- */
+  .rules h2{font-size:21px}
+  .rules .tbl{display:block;overflow-x:auto;font-size:14px}
+  .rules li{margin-bottom:6px}
+
+  /* --- dialog & hasil: lembar dari bawah --- */
+  .modal,.fx-confirm{align-items:flex-end;padding:0}
+  .modal-box,.fx-confirm-box{width:100%;max-width:none;border-radius:24px 24px 0 0;max-height:90vh;
+    padding:22px 18px calc(18px + env(safe-area-inset-bottom));animation:sheetUp .25s ease-out}
+  .modal-box h2{font-size:21px}
+  .modal-actions{flex-direction:column-reverse;align-items:stretch}
+  .modal-actions .btn{width:100%;min-height:54px}
+  .fx-confirm-box .modal-actions .btn{min-width:0}
+  .fan-table{font-size:15px}
+  .drawer{width:min(360px,90vw);left:auto;right:0;transform:translateX(105%);box-shadow:-8px 0 30px rgba(0,0,0,.35);
+    padding-left:max(18px,env(safe-area-inset-left));padding-right:max(18px,env(safe-area-inset-right))}
+  .drawer .chk{min-height:52px}
+  .dr-row{flex-direction:column;align-items:stretch;gap:8px}
+}
+@keyframes sheetUp{from{transform:translateY(40px);opacity:.4}}

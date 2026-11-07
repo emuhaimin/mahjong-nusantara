@@ -166,6 +166,7 @@
     const view = ['home', 'learn', 'play', 'watch', 'rules', 'online'].includes(v) ? v : 'home';
     document.querySelectorAll('.view').forEach(s => { s.hidden = s.id !== 'view-' + (view === 'watch' ? 'play' : view); });
     document.querySelectorAll('#nav a').forEach(a => a.classList.toggle('active', a.dataset.view === view));
+    document.querySelectorAll('#tabbar a').forEach(a => a.classList.toggle('active', a.dataset.view === (view === 'watch' ? 'play' : view)));
     if (prev === 'learn' && view !== 'learn') Learn.leave();
     if (view === 'learn') Learn.show(Learn.current());
     if (view === 'rules') renderRules();
