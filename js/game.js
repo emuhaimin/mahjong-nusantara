@@ -587,45 +587,13 @@ const Game = (() => {
   /* ---------- tingkat kesulitan bot ----------
      easy   : sering membuang asal, tidak menghitung peluang kartu, klaim sembarangan
      medium : mengejar Ting dengan benar, kadang keliru, jarang mengejar Flush
-     hard   : bot standar (versi lama): hitung peluang kartu, bias kartu bernilai, kejar Flush
-     expert : seperti hard + selalu kejar fan besar + membaca lawan & bertahan saat lawan Ting */
-  /** jumlah tertimbang kartu bagus 2 langkah ke depan setelah membuang k (shanten s) */
-  function lookahead2(c, open, vis, k, s) {
-    c[k]--;
-    let total = 0;
-    for (let y = 0; y < 34; y++) {
-      const left = 4 - c[y] - vis[y];
-      if (left <= 0) continue;
-      c[y]++;
-      if (shantenAll(c, open) < s) {
-        let best = 0;                           // buangan terbaik berikutnya → hitung kartu yang memajukan lagi
-        for (let z = 0; z < 34; z++) {
-          if (!c[z] || z === y) continue;
-          c[z]--;
-          if (shantenAll(c, open) === s - 1) {
-            let u = 0;
-            for (let w = 0; w < 34; w++) {
-              const l2 = 4 - c[w] - vis[w] - (w === y ? 1 : 0);
-              if (l2 <= 0) continue;
-              c[w]++; if (shantenAll(c, open) < s - 1) u += l2; c[w]--;
-            }
-            if (u > best) best = u;
-          }
-          c[z]++;
-        }
-        total += left * best;
-      }
-      c[y]--;
-    }
-    c[k]++;
-    return total;
-  }
-
+     hard   : hitung peluang kartu, bias kartu bernilai, kejar Flush; sesekali (10%) kurang teliti
+     expert : tidak pernah ceroboh + selalu kejar fan besar + membaca lawan & bertahan saat lawan Ting */
   const LEVELS = {
     easy: { label: 'Easy', ic: '🟢', sloppy: .3, ukeire: false, flush: 0, defense: false },
     medium: { label: 'Medium', ic: '🟡', sloppy: .3, ukeire: true, flush: 0, defense: false },
-    hard: { label: 'Hard', ic: '🟠', sloppy: 0, ukeire: true, flush: .5, defense: false },
-    expert: { label: 'Expert', ic: '🔴', sloppy: 0, ukeire: true, flush: 1, defense: true, lookahead: true },
+    hard: { label: 'Hard', ic: '🟠', sloppy: .1, ukeire: true, flush: .5, defense: false },
+    expert: { label: 'Expert', ic: '🔴', sloppy: 0, ukeire: true, flush: 1, defense: true },
   };
   const lvOf = p => LEVELS[(G.players[p] && G.players[p].level) || 'hard'] || LEVELS.hard;
   const pick = a => a[rnd(a.length)];
@@ -675,17 +643,6 @@ const Game = (() => {
         }
       }
       cands.sort((a, b) => b.score - a.score);
-      // Expert melihat 2 langkah: dari 3 kandidat teratas, kartu mana yang setelah ditarik kartu bagus
-      // masih menyisakan banyak kartu bagus berikutnya (bentuk tangan lebih lentur)
-      if (L.lookahead && minS >= 1 && cands.length > 1) {
-        const top = cands.filter(x => x.s === minS).slice(0, 3);
-        if (top.length > 1) {
-          for (const x of top) x.u2 = lookahead2(c, open, vis, x.k, x.s);
-          top.forEach(x => { x.score2 = x.score + x.u2 / 12; });
-          top.sort((a, b) => b.score2 - a.score2);
-          return choose(top[0].k);
-        }
-      }
       return choose(cands[0].k);
     },
     turn(p, win, kongs) {

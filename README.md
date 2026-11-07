@@ -22,8 +22,8 @@ Bot memakai AI berbasis aturan (bukan *machine learning*): menghitung jarak tang
 |---|---|
 | 🟢 Easy | Sering membuang asal, asal klaim Pong/Chow, tidak menghitung peluang kartu |
 | 🟡 Medium | Mengejar Ting dengan benar, tapi ±30% buangan acak dan tidak mengejar Flush |
-| 🟠 Hard | Bot standar: hitung peluang kartu tersisa, jaga kartu bernilai, kejar Flush |
-| 🔴 Expert | Hard + lihat 2 langkah ke depan, selalu kejar fan besar, membaca lawan (meld terbuka, lamanya bermain, kartu yang baru lolos) dan membuang kartu aman saat lawan hampir Hu |
+| 🟠 Hard | Hitung peluang kartu tersisa, jaga kartu bernilai, kejar Flush; sesekali (10%) kurang teliti |
+| 🔴 Expert | Tidak pernah ceroboh, selalu kejar fan besar, membaca lawan (meld terbuka, lamanya bermain, kartu yang baru lolos) dan membuang kartu aman saat lawan hampir Hu |
 | 🎲 Campuran | Tiap bot beda tingkat (main: Medium/Hard/Expert · simulasi: Easy/Medium/Hard/Expert) |
 
 Saran langkah untuk pemain selalu memakai penilaian Hard. Bot di mode Online (`server/engine.js`) belum memakai tingkat ini.
