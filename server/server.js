@@ -12,6 +12,7 @@ const { Room } = require('./engine');
 const { Store } = require('./store');
 const { verifyGoogleIdToken } = require('./auth');
 const { summarize, sanitizeRecord } = require('./stats');
+const { mjnComputeRp, mjnRankFromRp, mjnBadges } = require('../js/progress');
 
 const PORT = +process.env.PORT || 3000;
 const HOST = process.env.HOST || '0.0.0.0';
@@ -43,6 +44,27 @@ const connPerIp = new Map();
 const CLIENT_ID = (process.env.GOOGLE_CLIENT_ID || '').trim();
 const DATA_DIR = process.env.DATA_DIR || process.env.STATE_DIRECTORY || path.join(ROOT, 'data');
 const store = new Store(DATA_DIR);
+
+/* ---------- tingkat pemain & peringkat global ---------- */
+const rpCache = new Map();                 // userId → RP (dihitung ulang saat ada sesi baru)
+function rpOf(id) {
+  if (!rpCache.has(id)) { const recs = store.games(id, Infinity); rpCache.set(id, recs.length ? mjnComputeRp(recs) : null); }
+  return rpCache.get(id);
+}
+{ const add = store.addGame.bind(store); store.addGame = (id, rec) => { add(id, rec); rpCache.delete(id); }; }
+/** posisi pemain di antara semua pemain yang punya riwayat (RP tertinggi = #1) */
+function standing(id) {
+  const mine = rpOf(id);
+  if (mine == null) return null;
+  let total = 0, above = 0;
+  for (const uid of Object.keys(store.users)) {
+    const rp = rpOf(uid);
+    if (rp == null) continue;
+    total++;
+    if (rp > mine) above++;
+  }
+  return { pos: above + 1, total };
+}
 const COOKIE = 'mjn_sess';
 const cookiePath = () => (BASE || '') + '/';
 function getCookie(req, name) {
@@ -114,8 +136,9 @@ async function handleApi(req, res, url) {
     }
     if (!user) return send(401, { error: 'Silakan masuk dengan Google dulu.' });
     if (url === '/api/stats' && m === 'GET') {
-      const recs = store.games(user.id, 500);
-      return send(200, { user: publicUser(user), ...summarize(recs), recent: recs.slice(-30).reverse() });
+      const all = store.games(user.id, Infinity), recs = all.slice(-500);
+      const progress = { rank: mjnRankFromRp(rpOf(user.id) || 0), badges: mjnBadges(all), standing: standing(user.id) };
+      return send(200, { user: publicUser(user), ...summarize(recs), recent: recs.slice(-30).reverse(), progress });
     }
     if (url === '/api/games' && m === 'POST') {
       if (limited('games:' + user.id, 120, 3600000)) return send(429, { error: 'Terlalu banyak data.' });
@@ -134,7 +157,7 @@ async function handleApi(req, res, url) {
     }
     if (url === '/api/me' && m === 'DELETE') {
       console.log(`[auth] akun dihapus: ${user.email}`);
-      store.deleteUser(user.id);
+      store.deleteUser(user.id); rpCache.delete(user.id);
       return send(200, { ok: true }, { 'set-cookie': setCookie(req, '', 0) });
     }
     return send(404, { error: 'Tidak ditemukan.' });

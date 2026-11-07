@@ -706,3 +706,39 @@ html.is-offline [data-needs-net] h3::after{content:" · butuh internet";font-siz
 .fx-flower{background:linear-gradient(180deg,#ff7eb3,#c2185b)}
 .fx-flower b{font-size:64px}
 @media (max-width:820px) and (orientation:portrait), (max-width:639px){.fx-flower b{font-size:44px}}
+
+/* ---------- tingkat pemain & badge ---------- */
+.medal{display:block;width:72px;height:72px;flex:none}
+.medal.big{width:104px;height:104px;filter:drop-shadow(0 4px 10px rgba(0,0,0,.25))}
+.medal.xs{width:34px;height:34px}
+.medal.locked{filter:grayscale(1);opacity:.35}
+.pf-level{display:grid;grid-template-columns:auto 1fr;gap:6px 18px;align-items:center;border-top:4px solid var(--tier)}
+.pf-level h3{margin:0 0 8px;font-size:22px}
+.pf-level h3 .zh{font-family:var(--cjk);color:var(--tier)}
+.pf-bar{height:10px;border-radius:999px;background:var(--surface-2);box-shadow:inset 0 0 0 1px var(--line);overflow:hidden;margin-bottom:6px}
+.pf-bar span{display:block;height:100%;border-radius:inherit;background:var(--tier);min-width:4px}
+.pf-standing{margin:8px 0 0;font-size:14px}
+.pf-howto{grid-column:1/-1;margin-top:8px}
+.pf-howto summary{cursor:pointer;font-weight:700;font-size:14px;color:var(--jade)}
+.pf-tierlist{list-style:none;padding:0;margin:10px 0}
+.pf-tierlist li{display:flex;gap:10px;align-items:center;padding:6px 8px;border-radius:10px}
+.pf-tierlist li.cur{background:var(--surface-2);box-shadow:inset 0 0 0 1px var(--line)}
+.pf-tierlist small{display:block;color:var(--muted);font-size:12.5px;line-height:1.4}
+.pf-badges h3 small{font-size:14px;font-weight:600}
+.badge-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:12px 8px;margin-top:12px}
+.badge{display:flex;flex-direction:column;align-items:center;gap:6px;padding:8px 4px;border:0;border-radius:14px;background:none;color:inherit;font:inherit;cursor:pointer}
+.badge:hover,.badge.sel{background:var(--surface-2)}
+.badge span{font-size:12px;font-weight:700;line-height:1.25;text-align:center}
+.badge:not(.earned) span{color:var(--muted);font-weight:600}
+.badge em{font-style:normal;font-size:11px;color:var(--muted);margin-top:-4px}
+.badge.earned .medal{filter:drop-shadow(0 3px 6px rgba(0,0,0,.22))}
+.badge-info{display:flex;gap:14px;align-items:center;margin-top:14px;padding:12px 14px;border-radius:12px;background:var(--surface-2);box-shadow:inset 0 0 0 1px var(--line)}
+.badge-info .medal{width:58px;height:58px}
+.badge-info p{margin:4px 0}
+@media (max-width:639px){
+  .pf-level{grid-template-columns:1fr;justify-items:center;text-align:center}
+  .pf-level-body{width:100%}
+  .badge-grid{grid-template-columns:repeat(4,1fr);gap:10px 4px}
+  .badge .medal{width:62px;height:62px}
+  .badge span{font-size:11px}
+}
