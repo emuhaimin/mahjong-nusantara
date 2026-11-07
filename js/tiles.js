@@ -69,5 +69,14 @@ function tileHTML(k, opt = {}) {
   const id = opt.id != null ? ` data-id="${opt.id}"` : '';
   return `<div class="tile ${cls}"${id} title="${tileName(k)}">${tileFace(k)}</div>`;
 }
+/** bunga/musim yang sudah dibuka, diletakkan di depan pemain seperti di meja nyata.
+    seatWind (0..3): bunga bernomor sama dengan kursi (Timur=1 … Utara=4) disorot karena bernilai +1 fan */
+const isOwnFlower = (k, seatWind) => k >= 34 && (k - 34) % 4 === seatWind;
+function flowersHTML(ks, cls = 'xs', seatWind = null) {
+  if (!ks || !ks.length) return '';
+  const own = ks.filter(k => isOwnFlower(k, seatWind)).length;
+  const tip = `Bunga/Musim dibuka (${ks.length})${own ? ` · ${own} bunga kursi sendiri (+${own} fan)` : ''}`;
+  return `<div class="meld flowers" title="${tip}">${ks.slice().sort((a, b) => a - b).map(k => tileHTML(k, { cls: cls + (isOwnFlower(k, seatWind) ? ' own-fl' : '') })).join('')}</div>`;
+}
 function backHTML(cls = '') { return `<div class="tile back ${cls}"></div>`; }
 function tilesHTML(ks, cls = 'sm') { return ks.map(k => tileHTML(k, { cls })).join(''); }

@@ -14,6 +14,10 @@ Buka `http://localhost:3000`. Teman di Wi-Fi yang sama bisa membuka alamat `http
 
 Mode offline (Belajar, Main vs Mesin, Simulasi Bot) juga jalan dengan membuka `index.html` langsung — hanya mode Online yang butuh server.
 
+## Bunga & Musim
+
+Delapan kartu bonus (梅蘭菊竹 bunga, 春夏秋冬 musim) ikut dikocok. Seperti di meja nyata, bunga yang didapat langsung **dibuka di depan pemain** (di samping Pong/Chow terbuka), lalu pemain mengambil kartu pengganti dari ujung belakang tembok. Saat pembagian awal, bunga diganti mulai dari dealer dan diringkas di tengah meja. Bunga yang terambil di tengah permainan diumumkan dengan notifikasi **BUNGA!**. Bunga bernomor sama dengan kursi (Timur=1 … Utara=4) diberi lingkar emas karena bernilai +1 fan (Bunga Kursi Sendiri). Set lengkap = +2 fan, tanpa bunga sama sekali = +1 fan.
+
 ## Tingkat lawan AI (Main vs Mesin & Simulasi)
 
 Bot memakai AI berbasis aturan (bukan *machine learning*): menghitung jarak tangan ke Ting (shanten), peluang kartu yang tersisa, fan, dan bahaya buangan. Pilih tingkatnya di layar pengaturan (diingat di perangkat):

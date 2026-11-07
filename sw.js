@@ -1,7 +1,7 @@
 /* sw.js — service worker: membuat situs bisa dipasang & tetap bisa dimainkan tanpa internet
    (mode pesawat): Belajar, Main vs Mesin, Simulasi Bot, dan Aturan berjalan sepenuhnya dari cache.
    Naikkan VERSION setiap rilis agar cache lama dibersihkan (deploy/install.sh melakukannya otomatis). */
-const VERSION = 'mjn-v3';
+const VERSION = 'mjn-v4';
 const FONT_CSS = 'https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@700&family=Plus+Jakarta+Sans:wght@400;600;800&display=swap';
 const NAV_TIMEOUT = 3500;   // sinyal lemah/mode pesawat: jangan biarkan halaman menunggu lama
 const CORE = [
