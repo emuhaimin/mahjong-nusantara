@@ -7,7 +7,7 @@ const Online = (() => {
   const POS = ['bottom', 'right', 'top', 'left'];
   const LS = 'mjn-online';
   let ws = null, S = null, everOpen = false, retry = null, sel = null, deadlineAt = 0, totalMs = 0;
-  let active = false, seenChat = 0, chatOpen = true, logOpen = false, modalKey = '';
+  let active = false, seenChat = -1, logOpen = false, modalKey = '';
 
   const load = () => { try { return JSON.parse(localStorage.getItem(LS)) || {}; } catch { return {}; } };
   const save = o => { try { localStorage.setItem(LS, JSON.stringify(Object.assign(load(), o))); } catch { } };
@@ -211,14 +211,17 @@ const Online = (() => {
 
   function renderChat() {
     const box = $('#on-chat');
-    $('#on-chatbox').hidden = !chatOpen;
+    const open = $('#on-game').classList.contains('dr-open');
     const atBottom = box.scrollTop + box.clientHeight >= box.scrollHeight - 10;
     box.innerHTML = S.chat.map(c => c.s < 0 ? `<div class="sys">${esc(c.text)}</div>` : `<div><b>${esc(c.n)}:</b> ${esc(c.text)}</div>`).join('');
     if (atBottom) box.scrollTop = box.scrollHeight;
     const last = S.chat.length ? S.chat[S.chat.length - 1].ts : 0;
-    const unread = !chatOpen && last > seenChat;
-    $('#on-btn-chat').textContent = unread ? 'Chat •' : 'Chat';
-    if (chatOpen) seenChat = last;
+    if (seenChat < 0) seenChat = last;           // pesan lama saat baru masuk tidak dihitung
+    const unread = !open && last > seenChat;
+    const btn = document.querySelector('[data-drawer="on-drawer"]');
+    btn.classList.toggle('unread', unread);
+    btn.title = unread ? 'Menu — ada pesan chat baru' : 'Menu';
+    if (open) seenChat = last;
   }
 
   /* ---------------- modal hasil ---------------- */
@@ -306,7 +309,11 @@ const Online = (() => {
     $('#on-shareb').onclick = () => navigator.share && navigator.share({ title: 'Main Mahjong bareng', text: `Gabung room mahjong ${S.code}`, url: $('#on-link').value }).catch(() => { });
     $('#on-r-minfan').onchange = $('#on-r-length').onchange = () => send({ t: 'opts', opts: { minFan: +$('#on-r-minfan').value, length: $('#on-r-length').value } });
     $('#on-hint').onchange = () => S && S.g && renderGame();
-    $('#on-btn-chat').onclick = () => { chatOpen = !chatOpen; if (S) renderChat(); };
+    document.querySelector('[data-drawer="on-drawer"]').addEventListener('click', () => setTimeout(() => {
+      if (!S || !S.g) return;
+      renderChat();
+      const box = $('#on-chat'); box.scrollTop = box.scrollHeight;
+    }, 0));
     $('#on-btn-log').onclick = () => { logOpen = !logOpen; $('#on-log').hidden = !logOpen; if (S && S.g) renderGame(); };
     $('#on-chatform').addEventListener('submit', e => {
       e.preventDefault();

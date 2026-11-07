@@ -110,18 +110,21 @@
     </div>
 
     <div id="game" class="game" hidden>
-      <div class="game-bar">
+      <button class="tbl-menu" data-drawer="g-drawer" aria-label="Buka menu" title="Menu"><span></span><span></span><span></span></button>
+      <div class="dr-backdrop" data-close></div>
+      <aside class="drawer" id="g-drawer" aria-label="Menu permainan">
+        <div class="dr-head"><a class="brand" href="#home"><span class="brand-tile">中</span><span>Mahjong <b>Nusantara</b></span></a><button class="dr-close" data-close aria-label="Tutup menu">✕</button></div>
         <div id="game-info" class="game-info"></div>
-        <div class="game-tools">
-          <label class="chk sm"><input type="checkbox" id="opt-hint"> Saran</label>
-          <label class="chk sm"><input type="checkbox" id="opt-show"> Kartu bot</label>
-          <select id="opt-speed" aria-label="Kecepatan">
+        <div class="dr-sec"><p class="dr-title">Pengaturan</p>
+          <label class="chk"><input type="checkbox" id="opt-hint"> Saran langkah</label>
+          <label class="chk"><input type="checkbox" id="opt-show"> Tampilkan kartu bot</label>
+          <label class="dr-row">Kecepatan bot <select id="opt-speed" aria-label="Kecepatan">
             <option value="lambat">Lambat</option><option value="normal">Normal</option><option value="cepat">Cepat</option><option value="kilat">Kilat</option>
-          </select>
-          <button class="btn ghost sm" id="btn-log">Log</button>
-          <button class="btn ghost sm" id="btn-quit">Keluar</button>
-        </div>
-      </div>
+          </select></label></div>
+        <div class="dr-sec dr-btns"><button class="btn ghost" data-fullscreen>⛶ Layar penuh</button><button class="btn ghost" id="btn-log">📜 Log permainan</button><button class="btn" id="btn-quit">Keluar permainan</button></div>
+        <div id="log" class="log" hidden></div>
+        <nav class="dr-nav"><a href="#home">Beranda</a><a href="#learn">Belajar</a><a href="#play">Main vs Mesin</a><a href="#online">Online</a><a href="#watch">Simulasi Bot</a><a href="#rules">Aturan &amp; Poin</a></nav>
+      </aside>
       <div id="table" class="table">
         <div class="seat slot-top" id="seat-2"></div>
         <div class="seat slot-left" id="seat-3"></div>
@@ -132,7 +135,6 @@
           <div class="seat slot-me" id="seat-0"></div>
         </div>
       </div>
-      <div id="log" class="log card" hidden></div>
     </div>
   </section>
 
@@ -180,15 +182,18 @@
     </div>
 
     <div id="on-game" class="game" hidden>
-      <div class="game-bar">
+      <button class="tbl-menu" data-drawer="on-drawer" aria-label="Buka menu" title="Menu"><span></span><span></span><span></span></button>
+      <div class="dr-backdrop" data-close></div>
+      <aside class="drawer" id="on-drawer" aria-label="Menu permainan">
+        <div class="dr-head"><a class="brand" href="#home"><span class="brand-tile">中</span><span>Mahjong <b>Nusantara</b></span></a><button class="dr-close" data-close aria-label="Tutup menu">✕</button></div>
         <div id="on-info" class="game-info"></div>
-        <div class="game-tools">
-          <label class="chk sm"><input type="checkbox" id="on-hint" checked> Saran</label>
-          <button class="btn ghost sm" id="on-btn-chat">Chat</button>
-          <button class="btn ghost sm" id="on-btn-log">Log</button>
-          <button class="btn ghost sm" id="on-leave2">Keluar</button>
-        </div>
-      </div>
+        <div class="dr-sec"><p class="dr-title">Pengaturan</p>
+          <label class="chk"><input type="checkbox" id="on-hint" checked> Saran langkah</label></div>
+        <div class="dr-sec chat" id="on-chatbox"><p class="dr-title">Chat room</p><div class="chat-list" id="on-chat"></div><form id="on-chatform"><input id="on-chatin" maxlength="200" placeholder="Tulis pesan…" autocomplete="off"><button class="btn sm">Kirim</button></form></div>
+        <div class="dr-sec dr-btns"><button class="btn ghost" data-fullscreen>⛶ Layar penuh</button><button class="btn ghost" id="on-btn-log">📜 Log permainan</button><button class="btn" id="on-leave2">Keluar room</button></div>
+        <div class="log" id="on-log" hidden></div>
+        <nav class="dr-nav"><a href="#home">Beranda</a><a href="#learn">Belajar</a><a href="#play">Main vs Mesin</a><a href="#online">Online</a><a href="#watch">Simulasi Bot</a><a href="#rules">Aturan &amp; Poin</a></nav>
+      </aside>
       <div class="table">
         <div class="seat slot-top" id="on-s-top"></div>
         <div class="seat slot-left" id="on-s-left"></div>
@@ -198,10 +203,6 @@
           <div id="on-action" class="action-bar"></div>
           <div class="seat slot-me" id="on-s-bottom"></div>
         </div>
-      </div>
-      <div class="on-side">
-        <div class="card chat" id="on-chatbox"><b>Chat room</b><div class="chat-list" id="on-chat"></div><form id="on-chatform"><input id="on-chatin" maxlength="200" placeholder="Tulis pesan…" autocomplete="off"><button class="btn sm">Kirim</button></form></div>
-        <div class="card log" id="on-log" hidden style="margin-top:0;max-height:300px"></div>
       </div>
     </div>
   </section>

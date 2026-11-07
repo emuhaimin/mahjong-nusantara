@@ -317,3 +317,49 @@ table.tbl td.num{text-align:right;font-weight:800;white-space:nowrap}
 .chat form input{flex:1}
 .paused{background:rgba(192,38,45,.5);padding:6px 12px;border-radius:10px;font-size:13px}
 @media (max-width:820px){ .on-grid,.on-side{grid-template-columns:1fr} .code-big{font-size:36px} }
+
+/* ---------- MODE MEJA PENUH (saat bermain) ---------- */
+body.in-game .topbar{display:none}
+body.in-game #view-play,body.in-game #view-online{max-width:none;padding:0}
+body.in-game .table{min-height:100vh;min-height:100dvh;border-radius:0;border-width:12px;box-shadow:inset 0 0 70px rgba(0,0,0,.5)}
+body.in-game .slot-left{padding-top:54px}
+.game{position:relative}
+
+/* tombol menu di pojok meja */
+.tbl-menu{position:fixed;top:16px;left:16px;z-index:60;width:44px;height:44px;border-radius:50%;padding:0;
+  border:1px solid rgba(255,255,255,.22);background:rgba(6,28,18,.55);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.35);transition:background .15s,transform .1s}
+.tbl-menu span{display:block;width:18px;height:2px;border-radius:2px;background:#f3efe3}
+.tbl-menu:hover{background:rgba(6,28,18,.85)}
+.tbl-menu:active{transform:scale(.95)}
+.tbl-menu.unread::after{content:'';position:absolute;top:5px;right:5px;width:11px;height:11px;border-radius:50%;background:#f2c14e;box-shadow:0 0 0 2px #0c4630}
+
+/* laci menu */
+.dr-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:70;opacity:0;pointer-events:none;transition:opacity .2s}
+.drawer{position:fixed;top:0;left:0;bottom:0;z-index:80;width:min(340px,88vw);background:var(--surface);color:var(--ink);
+  box-shadow:8px 0 30px rgba(0,0,0,.35);transform:translateX(-105%);transition:transform .25s ease;visibility:hidden;
+  display:flex;flex-direction:column;gap:14px;padding:16px 18px 22px;overflow-y:auto;overscroll-behavior:contain}
+.game.dr-open .drawer{transform:none;visibility:visible}
+.game.dr-open .dr-backdrop{opacity:1;pointer-events:auto}
+.dr-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.dr-head .brand{color:var(--ink);font-size:17px}
+.dr-close{all:unset;cursor:pointer;width:36px;height:36px;display:grid;place-items:center;border-radius:50%;font-size:16px;color:var(--muted)}
+.dr-close:hover{background:var(--surface-2);color:var(--ink)}
+.drawer .game-info{background:var(--surface-2);border-radius:10px;padding:10px 12px;font-size:13px;line-height:1.5}
+.dr-sec{display:flex;flex-direction:column;gap:10px;border-top:1px solid var(--line);padding-top:12px}
+.dr-title{margin:0;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.dr-row{display:flex;align-items:center;justify-content:space-between;gap:10px;font-weight:600;font-size:14px}
+.dr-row select{padding:6px 8px;font-size:13px}
+.dr-btns .btn{width:100%;justify-content:flex-start}
+.drawer .log{margin:0;max-height:240px;overflow:auto;font-size:12.5px;padding:10px 12px;background:var(--surface-2);border-radius:10px;border:0}
+.drawer .chat-list{max-height:200px;background:var(--surface-2);border-radius:10px;padding:8px 10px}
+.dr-nav{display:flex;flex-direction:column;border-top:1px solid var(--line);padding-top:8px;margin-top:auto}
+.dr-nav a{text-decoration:none;padding:8px 6px;border-radius:8px;font-size:14px;color:var(--muted);font-weight:600}
+.dr-nav a:hover{background:var(--surface-2);color:var(--ink)}
+
+@media (max-width:820px){
+  body.in-game .table{border-width:0;padding:8px}
+  body.in-game .slot-left{padding-top:8px}
+  body.in-game .table .slot-right{padding-right:56px}
+  .tbl-menu{top:12px;left:auto;right:12px;width:40px;height:40px}
+}

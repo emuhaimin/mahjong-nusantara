@@ -74,6 +74,37 @@
     if (m === 'watch') $('#log').hidden = false;
   });
 
+  /* ---------- mode meja penuh + laci menu ---------- */
+  const games = ['#game', '#on-game'].map(q => $(q));
+  const closeDrawers = () => games.forEach(g => g.classList.remove('dr-open'));
+  function syncInGame() {
+    const on = (!$('#view-play').hidden && !$('#game').hidden) || (!$('#view-online').hidden && !$('#on-game').hidden);
+    document.body.classList.toggle('in-game', on);
+    if (!on) {
+      closeDrawers();
+      if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(() => { });
+    }
+  }
+  const mo = new MutationObserver(syncInGame);
+  ['#game', '#on-game', '#view-play', '#view-online'].forEach(q => mo.observe($(q), { attributes: true, attributeFilter: ['hidden'] }));
+  document.addEventListener('click', e => {
+    const open = e.target.closest('[data-drawer]');
+    if (open) { open.closest('.game').classList.toggle('dr-open'); return; }
+    if (e.target.closest('.drawer [data-close], .dr-backdrop, .dr-nav a, .dr-head .brand')) closeDrawers();
+    const fs = e.target.closest('[data-fullscreen]');
+    if (fs) {
+      if (document.fullscreenElement) document.exitFullscreen().catch(() => { });
+      else if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(() => { });
+    }
+  });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDrawers(); });
+  const fsLabel = () => document.querySelectorAll('[data-fullscreen]').forEach(b => {
+    b.hidden = !document.fullscreenEnabled;
+    b.textContent = document.fullscreenElement ? '⛶ Keluar layar penuh' : '⛶ Layar penuh';
+  });
+  document.addEventListener('fullscreenchange', fsLabel);
+  fsLabel();
+
   /* ---------- router ---------- */
   let prev = null;
   function route() {
@@ -94,6 +125,7 @@
       if (!Game.isRunning()) { $('#game').hidden = true; $('#setup').hidden = false; setupMode(want); }
     }
     prev = view;
+    syncInGame();
     window.scrollTo({ top: 0 });
   }
   Learn.init();
