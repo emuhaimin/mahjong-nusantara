@@ -25,6 +25,11 @@ const Online = (() => {
     if (ws && ws.readyState <= 1) return;
     if (location.protocol === 'file:') return noServer();
     clearTimeout(retry);
+    if (navigator.onLine === false) {           // mode pesawat: tunggu event 'online', jangan coba terus
+      offlineNote();
+      if (S) { S.offline = true; render(); }
+      return;
+    }
     // relatif terhadap halaman → bekerja di subdomain maupun sub-path (mis. /mahjong/ws)
     const wsUrl = new URL('ws', location.href.split('#')[0]);
     wsUrl.protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -46,7 +51,17 @@ const Online = (() => {
       }
     };
   }
+  function offlineNote() {
+    const el = $('#on-noserver');
+    el.hidden = false;
+    el.innerHTML = `✈️ Kamu sedang offline (mode pesawat). Main Online butuh internet — sambil menunggu, coba <a href="#play">Main vs Mesin</a> atau <a href="#learn">Belajar</a> yang tetap jalan tanpa koneksi. Room akan tersambung lagi otomatis begitu internet kembali.`;
+  }
+  window.addEventListener('online', () => {
+    $('#on-noserver').hidden = true;
+    if (active || load().code) connect();
+  });
   function noServer() {
+    if (navigator.onLine === false) return offlineNote();
     const el = $('#on-noserver');
     el.hidden = false;
     el.innerHTML = `Server online tidak terdeteksi di alamat ini. Mode online butuh server permainan: di folder proyek jalankan <code>npm start</code> (atau <code>node server/server.js</code>), lalu buka alamat yang ditampilkan, mis. <b>http://localhost:3000</b>.`;

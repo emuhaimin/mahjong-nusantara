@@ -14,6 +14,14 @@ Buka `http://localhost:3000`. Teman di Wi-Fi yang sama bisa membuka alamat `http
 
 Mode offline (Belajar, Main vs Mesin, Simulasi Bot) juga jalan dengan membuka `index.html` langsung — hanya mode Online yang butuh server.
 
+## Main tanpa internet (mode pesawat)
+
+Buka situs sekali saat ada internet (atau pasang sebagai aplikasi). Service worker (`sw.js`) menyimpan semua halaman, kode, gambar kartu, dan font. Setelah itu **Belajar**, **Main vs Mesin**, **Simulasi Bot**, dan **Aturan & Poin** jalan sepenuhnya offline. Beranda menampilkan “✅ Siap dimainkan tanpa internet” kalau semuanya sudah tersimpan.
+
+- Saat offline muncul banner ✈️, dan kartu *Main Online* ditandai “butuh internet”.
+- Pemain yang login tetap dikenali saat offline. Hasil sesi Main vs Mesin diantre di perangkat lalu dikirim otomatis begitu internet kembali.
+- Room Online tersambung ulang otomatis begitu koneksi kembali.
+
 ## Deploy ke mahjong.rupaone.io (VPS Hostinger)
 
 Hasil akhirnya: `https://mahjong.rupaone.io`. Node berjalan sebagai layanan systemd `mahjong` di `127.0.0.1:3100`, dan nginx meneruskan ke sana (termasuk WebSocket), dengan HTTPS dari Let's Encrypt. Situs utama rupaone.io tidak disentuh.

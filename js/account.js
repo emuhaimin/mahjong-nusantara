@@ -2,7 +2,8 @@
 const Account = (() => {
   const $ = s => document.querySelector(s);
   const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-  const QKEY = 'mjn-queue';
+  const QKEY = 'mjn-queue', UKEY = 'mjn-user';   // UKEY: salinan akun agar tetap dikenali saat offline
+  let offlineUser = false;                           // true = akun dari salinan lokal (belum dicek server)
   let user = null, clientId = null, ready = false, gisLoading = null, nudged = false, loadingStats = false, lastFill = '';
   const display = () => (user ? (user.alias || user.given || user.name || 'Pemain') : '');
 
@@ -14,12 +15,18 @@ const Account = (() => {
   }
 
   /* ---------- status login ---------- */
+  function readUser() { try { return JSON.parse(localStorage.getItem(UKEY)); } catch { return null; } }
+  function saveUser() { try { user ? localStorage.setItem(UKEY, JSON.stringify(user)) : localStorage.removeItem(UKEY); } catch { } }
   async function init() {
     if (location.protocol !== 'file:') {
       try {
         const [c, m] = await Promise.all([api('api/config'), api('api/me')]);
-        clientId = c.googleClientId; user = m.user;
-      } catch { /* server tanpa API (mis. hosting statis) → mode tamu */ }
+        clientId = c.googleClientId; user = m.user; offlineUser = false; saveUser();
+      } catch (e) {
+        // tanpa internet (mode pesawat): pakai akun terakhir agar hasil main tetap diantre & dikirim nanti.
+        // Server membalas error (mis. hosting statis tanpa API) → mode tamu.
+        if (!e.status) { user = readUser(); offlineUser = !!user; }
+      }
     }
     ready = true;
     renderChip(); prefill(true); flushQueue();
@@ -30,7 +37,7 @@ const Account = (() => {
     const el = $('#acct-chip');
     if (!el) return;
     el.innerHTML = user
-      ? `${user.picture ? `<img src="${esc(user.picture)}" alt="" referrerpolicy="no-referrer">` : `<span class="av-fallback">${esc(display()[0] || '?')}</span>`}<span class="acct-name">${esc(display())}</span>`
+      ? `${user.picture && navigator.onLine !== false ? `<img src="${esc(user.picture)}" alt="" referrerpolicy="no-referrer">` : `<span class="av-fallback">${esc(display()[0] || '?')}</span>`}<span class="acct-name">${esc(display())}</span>`
       : `<span class="acct-login">Masuk</span>`;
     el.title = user ? `Profil ${user.name}` : 'Masuk dengan Google';
   }
@@ -67,7 +74,7 @@ const Account = (() => {
         if (!/^[\p{L}\p{N}][\p{L}\p{N} ._-]{1,13}$/u.test(v)) { err.hidden = false; err.textContent = 'Alias 2–14 karakter: huruf, angka, spasi, titik, _ atau -. Harus diawali huruf/angka.'; input.focus(); return; }
         try {
           const r = await api('api/me/alias', { method: 'POST', body: JSON.stringify({ alias: v }) });
-          user = r.user; renderChip(); prefill(true);
+          user = r.user; saveUser(); renderChip(); prefill(true);
           FX.toast(`Nama alias kamu sekarang “${display()}”.`);
           done(true); renderProfile();
         } catch (ex) { err.hidden = false; err.textContent = ex.message; }
@@ -103,7 +110,7 @@ const Account = (() => {
   async function onCredential(resp) {
     try {
       const r = await api('api/auth/google', { method: 'POST', body: JSON.stringify({ credential: resp.credential }) });
-      user = r.user;
+      user = r.user; offlineUser = false; saveUser();
       renderChip(); prefill(true); flushQueue(); renderProfile();
       if (!user.alias) await askAlias(true);
       FX.toast(`Halo, ${display()}! Riwayat permainanmu sekarang tersimpan.`);
@@ -112,13 +119,13 @@ const Account = (() => {
   async function logout() {
     try { await api('api/auth/logout', { method: 'POST' }); } catch { }
     try { if (window.google && google.accounts) google.accounts.id.disableAutoSelect(); } catch { }
-    user = null; renderChip(); renderProfile();
+    user = null; saveUser(); renderChip(); renderProfile();
     FX.toast('Kamu sudah keluar dari akun.');
   }
   async function deleteAccount() {
     const ok = await FX.ask('Hapus akun & semua riwayat?', { text: 'Profil, statistik, dan seluruh riwayat permainanmu dihapus permanen dari server. Tindakan ini tidak bisa dibatalkan.', yes: 'Hapus permanen', no: 'Batal' });
     if (!ok) return;
-    try { await api('api/me', { method: 'DELETE' }); user = null; localStorage.removeItem(QKEY); renderChip(); renderProfile(); FX.toast('Akun dan riwayatmu sudah dihapus.'); }
+    try { await api('api/me', { method: 'DELETE' }); user = null; saveUser(); localStorage.removeItem(QKEY); renderChip(); renderProfile(); FX.toast('Akun dan riwayatmu sudah dihapus.'); }
     catch (e) { FX.toast(e.message); }
   }
 
@@ -141,12 +148,25 @@ const Account = (() => {
       let q = readQ();
       while (q.length) {
         try { await api('api/games', { method: 'POST', body: JSON.stringify({ record: q[0] }) }); }
-        catch (e) { if (e.status === 400 || e.status === 413) { /* data rusak → buang */ } else break; }
+        catch (e) {
+          if (e.status === 400 || e.status === 413) { /* data rusak → buang */ }
+          else { if (e.status === 401) { user = null; offlineUser = false; saveUser(); renderChip(); } break; }
+        }
         q = readQ(); q.shift(); writeQ(q);
       }
     } finally { flushing = false; }
   }
-  window.addEventListener('online', flushQueue);
+  // internet kembali: cek ulang akun (bila tadi pakai salinan lokal), lalu kirim antrean
+  window.addEventListener('online', async () => {
+    if (offlineUser || !clientId) {
+      try {
+        const [c, m] = await Promise.all([api('api/config'), api('api/me')]);
+        clientId = c.googleClientId; user = m.user; offlineUser = false; saveUser(); renderChip();
+      } catch { }
+    }
+    flushQueue();
+    if (!$('#view-profile').hidden) renderProfile();
+  });
 
   /* ---------- halaman Profil ---------- */
   const RES = {
@@ -192,6 +212,14 @@ const Account = (() => {
     const el = $('#profile');
     if (!el) return;
     if (!ready) { el.innerHTML = '<p class="muted">Memuat…</p>'; return; }
+    if (navigator.onLine === false) {
+      const n = readQ().length;
+      el.innerHTML = `<div class="card"><p class="eyebrow">Offline / mode pesawat</p>
+          <h2>${user ? esc(display()) : 'Profil'} — statistik butuh internet</h2>
+          <p>${user ? `Kamu tetap bisa bermain. Hasil setiap sesi Main vs Mesin disimpan di perangkat ini${n ? ` (<b>${n}</b> sesi menunggu)` : ''} dan dikirim otomatis begitu internet kembali.` : 'Login Google butuh internet. Tanpa login pun kamu tetap bisa bermain Main vs Mesin, Belajar, dan Simulasi Bot.'}</p>
+          <div class="modal-actions"><a class="btn jade" href="#play">Main vs Mesin</a><a class="btn ghost" href="#learn">Belajar</a></div></div>`;
+      return;
+    }
     if (!user) {
       el.innerHTML = `<div class="card pf-login">
           <p class="eyebrow">Akun pemain</p><h2>Simpan riwayat &amp; evaluasi permainanmu</h2>
@@ -210,7 +238,7 @@ const Account = (() => {
     el.innerHTML = `<div class="card"><p class="muted">Memuat statistik ${esc(display())}…</p></div>`;
     let data;
     try { data = await api('api/stats'); }
-    catch (e) { loadingStats = false; if (e.status === 401) { user = null; renderChip(); return renderProfile(); } el.innerHTML = `<div class="card"><p class="on-err">${esc(e.message)}</p></div>`; return; }
+    catch (e) { loadingStats = false; if (e.status === 401) { user = null; saveUser(); renderChip(); return renderProfile(); } el.innerHTML = `<div class="card"><p class="on-err">${esc(e.message)}</p></div>`; return; }
     loadingStats = false;
     const s = data.summary, t = data.trend;
     const arrow = (now, before, goodUp) => { if (now === before) return ''; const up = now > before; return `<em class="${up === goodUp ? 'plus' : 'minus'}">${up ? '▲' : '▼'}</em>`; };
