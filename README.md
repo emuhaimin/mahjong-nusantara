@@ -26,7 +26,9 @@ Bot memakai AI berbasis aturan (bukan *machine learning*): menghitung jarak tang
 | 🔴 Expert | Tidak pernah ceroboh, selalu kejar fan besar, membaca lawan (meld terbuka, lamanya bermain, kartu yang baru lolos) dan membuang kartu aman saat lawan hampir Hu |
 | 🎲 Campuran | Tiap bot beda tingkat (main: Medium/Hard/Expert · simulasi: Easy/Medium/Hard/Expert) |
 
-Saran langkah untuk pemain selalu memakai penilaian Hard. Bot di mode Online (`server/engine.js`) belum memakai tingkat ini.
+Di mode **Online**, host memilih tingkat bot saat membuat room (bisa diubah di ruang tunggu). Kursi pemain yang terputus atau kehabisan waktu dimainkan otomatis setara Hard. Saran langkah untuk pemain selalu memakai penilaian Hard.
+
+Otak bot ada di satu file, `js/ai.js`, yang dipakai bersama oleh `js/game.js` (browser) dan `server/engine.js` (Online).
 
 ## Main tanpa internet (mode pesawat)
 
@@ -119,7 +121,8 @@ Uji lokal: `GOOGLE_CLIENT_ID=... npm start`.
 ## Struktur
 
 - `js/tiles.js`, `js/rules.js` — kartu, deteksi menang, fan & poin, shanten (dipakai klien **dan** server)
-- `js/game.js` — mesin offline + bot
+- `js/ai.js` — bot AI (4 tingkat), dipakai browser & server
+- `js/game.js` — mesin offline
 - `js/online.js` — klien online (lobby, room, meja, chat)
 - `js/learn.js` — modul belajar 17 langkah
 - `server/server.js` — server statis + WebSocket

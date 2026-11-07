@@ -4,9 +4,11 @@
 const fs = require('fs'), path = require('path'), vm = require('vm');
 
 const ctx = vm.createContext({ console });
-for (const f of ['tiles.js', 'rules.js', 'record.js']) vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'js', f), 'utf8'), ctx, { filename: f });
-const { tileName, WIND_ID, scoreWin, toCounts, meldTiles, shantenAll, waitingTiles, TK, MjnRecorder, mjnHandResult } =
-  vm.runInContext('({ tileName, WIND_ID, scoreWin, toCounts, meldTiles, shantenAll, waitingTiles, TK, MjnRecorder, mjnHandResult })', ctx);
+for (const f of ['tiles.js', 'rules.js', 'record.js', 'ai.js']) vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'js', f), 'utf8'), ctx, { filename: f });
+const { tileName, WIND_ID, scoreWin, toCounts, meldTiles, shantenAll, waitingTiles, MjnRecorder, mjnHandResult, createMjnAI } =
+  vm.runInContext('({ tileName, WIND_ID, scoreWin, toCounts, meldTiles, shantenAll, waitingTiles, MjnRecorder, mjnHandResult, createMjnAI })', ctx);
+const LEVELS = ['easy', 'medium', 'hard', 'expert', 'mix'];
+const MIX = ['hard', 'medium', 'hard', 'expert'];   // tingkat per kursi bila host memilih Campuran
 
 const ABORT = { abort: true };
 const TURN_MS = 30000, CLAIM_MS = 12000, RESULT_MS = 30000, BOT_THINK = 750;
@@ -22,7 +24,14 @@ class Room {
     this.recs = new Map();                 // kursi → perekam sesi pemain yang login
     this.code = code;
     this.seats = [null, null, null, null]; // {name, token, human, conn, connected}
-    this.opts = { minFan: 1, length: 'east' };
+    this.opts = { minFan: 1, length: 'east', level: 'medium' };
+    // otak bot (js/ai.js, sama dengan versi offline). Kursi manusia yang terputus/kehabisan waktu dimainkan setara Hard.
+    this.ai = createMjnAI({
+      state: () => ({ players: this.G.players, wallLeft: this.G.wall.length, roundWind: this.G.roundWind, hist: this.G.hist }),
+      minFan: () => this.opts.minFan,
+      seatWind: p => this.seatWind(p),
+      levelOf: p => this.levelOf(p),
+    });
     this.phase = 'lobby';                  // lobby | playing | finished
     this.G = null;
     this.pending = new Map();              // seat → {ui, deadline, resolve, fallback}
@@ -40,6 +49,13 @@ class Room {
   setOpts(o) {
     if ([0, 1, 3].includes(+o.minFan)) this.opts.minFan = +o.minFan;
     if (['one', 'east', 'full'].includes(o.length)) this.opts.length = o.length;
+    if (LEVELS.includes(o.level)) this.opts.level = o.level;
+  }
+  /** tingkat AI kursi p: bot → pilihan host (Campuran: per kursi); manusia (saat dimainkan otomatis) → hard */
+  levelOf(p) {
+    const s = this.seats[p];
+    if (!s || s.human) return 'hard';
+    return this.opts.level === 'mix' ? MIX[p] : this.opts.level;
   }
   connectedHumans() { return this.seats.filter(s => s && s.human && s.connected).length; }
   hostSeat() { return this.seats.findIndex(s => s && s.human && s.token === this.hostToken); }
@@ -56,7 +72,7 @@ class Room {
     const s = this.seats[i];
     if (!s || !s.userId || !this.onRecord) return;
     this.recs.set(i, { userId: s.userId, r: new MjnRecorder({
-      mode: 'online', minFan: this.opts.minFan, length: this.opts.length,
+      mode: 'online', minFan: this.opts.minFan, length: this.opts.length, level: this.opts.level,
       opponents: this.seats.filter((x, j) => x && j !== i).map(x => x.name),
     }) });
   }
@@ -199,7 +215,7 @@ class Room {
     const G = this.G;
     const v = {
       t: 'state', code: this.code, phase: this.phase, opts: this.opts, you: p, host: this.hostSeat(),
-      seats: this.seats.map(s => s && { name: s.name, human: s.human, connected: s.connected }),
+      seats: this.seats.map((s, i) => s && { name: s.name, human: s.human, connected: s.connected, level: s.human ? null : this.levelOf(i) }),
       chat: this.chat.slice(-40),
     };
     if (!G) return v;
@@ -258,7 +274,7 @@ class Room {
     this.G = {
       players: this.seats.map(s => ({ name: s.name, score: 500, hand: [], melds: [], flowers: [], discards: [], drawn: null })),
       dealer: 0, firstDealer: 0, roundWind: 0, handNo: 0, wall: [], turn: -1, log: [], msg: '', dice: null,
-      reveal: false, lastDiscard: null, callout: null, result: null, final: null, paused: false,
+      reveal: false, lastDiscard: null, callout: null, result: null, final: null, paused: false, hist: [],
     };
     this.recs.clear();
     for (let i = 0; i < 4; i++) this.newRecorder(i);
@@ -283,7 +299,6 @@ class Room {
     } catch (e) { if (e !== ABORT) console.error(e); }
   }
   seatWind(p) { return (p - this.G.dealer + 4) % 4; }
-  isValue(p, k) { return k >= 31 || k === 27 + this.seatWind(p) || k === 27 + this.G.roundWind; }
   nm(p) { return this.G.players[p].name; }
   matchOver() {
     const L = this.opts.length;
@@ -316,6 +331,7 @@ class Room {
     G.handNo++;
     G.result = null;
     for (const pl of G.players) { pl.hand = []; pl.melds = []; pl.flowers = []; pl.discards = []; pl.drawn = null; }
+    this.ai.newHand();
     G.lastDiscard = null; G.turn = G.dealer; G.reveal = false;
     const tiles = []; let id = 0;
     for (let k = 0; k < 34; k++) for (let c = 0; c < 4; c++) tiles.push({ id: id++, k });
@@ -451,7 +467,7 @@ class Room {
       let act;
       if (!this.isLive(p)) { this.broadcast(); await this.sleep(BOT_THINK); act = this.aiTurn(p, win, kongs); }
       else {
-        const h = this.evalDiscard(p);
+        const h = this.evalDiscard(p, 'hard');   // saran untuk pemain selalu setara Hard
         const ui = { mode: 'turn', win, kongs, hintId: h.id, hintK: h.k, hintS: h.s };
         if (h.s === 0) { const ks = pl.hand.map(t => t.k); ks.splice(ks.indexOf(h.k), 1); ui.waits = plain(waitingTiles(ks, pl.melds.length)); }
         G.msg = `Giliran ${esc(this.nm(p))}.`;
@@ -487,6 +503,7 @@ class Room {
     const t = pl.hand.splice(pl.hand.findIndex(t => t.id === id), 1)[0];
     pl.discards.push(t); pl.drawn = null;
     this.G.lastDiscard = { p, id: t.id };
+    this.ai.noteDiscard(p, t.k);
     this.log(`${this.nm(p)} membuang ${tileName(t.k)}.`);
     return t;
   }
@@ -515,7 +532,7 @@ class Room {
     }
     const decs = await Promise.all(opts.map(o => {
       if (!this.isLive(o.p)) return Promise.resolve(this.aiClaim(o.p, tile, o));
-      const s = this.aiClaim(o.p, tile, o);
+      const s = this.aiClaim(o.p, tile, o, 'hard');
       const hint = s ? `Saran: <b>${{ win: 'Hu (menang)', chow: 'Chow', kong: 'Kong', pong: 'Pong' }[s.type]}</b>.` : 'Saran: lewati — klaim ini tidak mempercepat tanganmu.';
       const meta = {};
       return this.ask(o.p, { mode: 'claim', tile, from, opt: o, hint }, CLAIM_MS, () => (o.win ? { type: 'win' } : null), meta).then(d => {
@@ -600,98 +617,10 @@ class Room {
     }
   }
 
-  /* ================= bot AI (sama dengan versi offline) ================= */
-  visibleCounts() {
-    const v = new Array(34).fill(0);
-    this.G.players.forEach(pl => { pl.discards.forEach(t => v[t.k]++); pl.melds.forEach(m => meldTiles(m).forEach(k => v[k]++)); });
-    return v;
-  }
-  flushTarget(pl) {
-    const ks = pl.hand.map(t => t.k); pl.melds.forEach(m => ks.push(...meldTiles(m)));
-    const per = [0, 0, 0]; let hon = 0;
-    ks.forEach(k => (k < 27 ? per[Math.floor(k / 9)]++ : hon++));
-    const best = per.indexOf(Math.max(...per));
-    if (pl.melds.some(m => m.k < 27 && Math.floor(m.k / 9) !== best)) return null;
-    return per[best] >= 7 && per[best] + hon >= ks.length - 3 ? best : null;
-  }
-  fanEstimate(p, extraK) {
-    const pl = this.G.players[p]; let f = 0;
-    pl.melds.forEach(m => { if (m.type !== 'chow' && this.isValue(p, m.k)) f++; });
-    const c = toCounts(pl.hand.map(t => t.k));
-    for (let k = 27; k < 34; k++) if (c[k] >= 3 && this.isValue(p, k)) f++;
-    if (extraK != null && this.isValue(p, extraK)) f++;
-    if (this.flushTarget(pl) != null) f += 3;
-    return f;
-  }
-  discardBias(p, k, c, fl) {
-    let b = 0; const val = this.isValue(p, k);
-    if (k >= 27) { if (c[k] === 1) b += val ? 0.6 : 2.2; if (c[k] >= 2 && val) b -= 4; }
-    else { if (TK.isTerminal(k)) b += 0.6; if (fl != null && Math.floor(k / 9) !== fl) b += 6; }
-    return b;
-  }
-  evalDiscard(p) {
-    const pl = this.G.players[p];
-    const c = toCounts(pl.hand.map(t => t.k)), open = pl.melds.length, vis = this.visibleCounts();
-    const fl = this.opts.minFan >= 2 || Math.random() < .5 ? this.flushTarget(pl) : null;
-    let cands = [...new Set(pl.hand.map(t => t.k))].map(k => { c[k]--; const s = shantenAll(c, open); c[k]++; return { k, s }; });
-    const minS = Math.min(...cands.map(x => x.s));
-    cands = cands.filter(x => x.s === minS);
-    for (const x of cands) {
-      c[x.k]--;
-      let u = 0;
-      for (let y = 0; y < 34; y++) {
-        const left = 4 - c[y] - vis[y];
-        if (left <= 0) continue;
-        c[y]++; if (shantenAll(c, open) < x.s) u += left; c[y]--;
-      }
-      c[x.k]++;
-      x.score = u + this.discardBias(p, x.k, c, fl);
-    }
-    cands.sort((a, b) => b.score - a.score);
-    const best = cands[0];
-    const t = pl.hand.find(t => t.k === best.k && t.id === pl.drawn) || pl.hand.find(t => t.k === best.k);
-    return { id: t.id, k: best.k, s: best.s };
-  }
-  aiTurn(p, win, kongs) {
-    if (win && !win.insufficient) return { type: 'tsumo' };
-    const pl = this.G.players[p];
-    for (const o of kongs) {
-      if (o.kind === 'add') return { type: 'kong', k: o.k };
-      const c = toCounts(pl.hand.map(t => t.k));
-      const before = shantenAll(c, pl.melds.length);
-      c[o.k] -= 4;
-      if (shantenAll(c, pl.melds.length + 1) <= before) return { type: 'kong', k: o.k };
-    }
-    return { type: 'discard', id: this.evalDiscard(p).id };
-  }
-  aiClaim(p, tile, o) {
-    if (o.win) return { type: 'win' };
-    const pl = this.G.players[p], k = tile.k, open = pl.melds.length;
-    const c = toCounts(pl.hand.map(t => t.k));
-    const cur = shantenAll(c, open), val = this.isValue(p, k);
-    const after = rm => {
-      rm.forEach(x => c[x]--);
-      let best = 99;
-      for (let x = 0; x < 34; x++) if (c[x] > 0) { c[x]--; const s = shantenAll(c, open + 1); if (s < best) best = s; c[x]++; }
-      rm.forEach(x => c[x]++);
-      return best;
-    };
-    const fl = this.flushTarget(pl);
-    const fits = fl == null || k >= 27 || Math.floor(k / 9) === fl;
-    const okFan = extra => this.opts.minFan === 0 || this.fanEstimate(p, extra) >= this.opts.minFan;
-    if (o.kong) { c[k] -= 3; const s = shantenAll(c, open + 1); c[k] += 3; if (s <= cur && fits && okFan(k)) return { type: 'kong' }; }
-    if (o.pong) { const s = after([k, k]); if (okFan(k) && fits && (s < cur || (val && s <= cur))) return { type: 'pong' }; }
-    if (o.chows.length && fits && okFan(null)) {
-      let best = null;
-      for (const s0 of o.chows) {
-        const rm = [s0, s0 + 1, s0 + 2]; rm.splice(rm.indexOf(k), 1);
-        const s = after(rm);
-        if (s < cur && (!best || s < best.s)) best = { s0, s };
-      }
-      if (best) return { type: 'chow', s: best.s0 };
-    }
-    return null;
-  }
+  /* ================= bot AI (js/ai.js — sama dengan versi offline) ================= */
+  evalDiscard(p, level) { return plain(this.ai.evalDiscard(p, level)); }
+  aiTurn(p, win, kongs) { return plain(this.ai.turn(p, win, kongs)); }
+  aiClaim(p, tile, o, level) { const d = this.ai.claim(p, tile, o, level); return d && plain(d); }
 }
 function esc(s) { return String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
 

@@ -1,13 +1,13 @@
 /* sw.js — service worker: membuat situs bisa dipasang & tetap bisa dimainkan tanpa internet
    (mode pesawat): Belajar, Main vs Mesin, Simulasi Bot, dan Aturan berjalan sepenuhnya dari cache.
    Naikkan VERSION setiap rilis agar cache lama dibersihkan (deploy/install.sh melakukannya otomatis). */
-const VERSION = 'mjn-v2';
+const VERSION = 'mjn-v3';
 const FONT_CSS = 'https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@700&family=Plus+Jakarta+Sans:wght@400;600;800&display=swap';
 const NAV_TIMEOUT = 3500;   // sinyal lemah/mode pesawat: jangan biarkan halaman menunggu lama
 const CORE = [
   './', 'index.html', 'manifest.webmanifest',
   'css/style.css',
-  'js/tiles.js', 'js/rules.js', 'js/fx.js', 'js/record.js', 'js/game.js', 'js/learn.js', 'js/online.js', 'js/pwa.js', 'js/account.js', 'js/app.js', 'privacy.html',
+  'js/tiles.js', 'js/rules.js', 'js/fx.js', 'js/record.js', 'js/ai.js', 'js/game.js', 'js/learn.js', 'js/online.js', 'js/pwa.js', 'js/account.js', 'js/app.js', 'privacy.html',
   'assets/icons/icon-192.png', 'assets/icons/icon-512.png', 'assets/icons/icon-maskable-512.png', 'assets/icons/apple-touch-icon.png', 'assets/icons/favicon-32.png',
   'assets/tiles/Back.svg','assets/tiles/Blank.svg','assets/tiles/Chun.svg','assets/tiles/Front.svg','assets/tiles/Haku.svg','assets/tiles/Hatsu.svg','assets/tiles/Man1.svg','assets/tiles/Man2.svg','assets/tiles/Man3.svg','assets/tiles/Man4.svg','assets/tiles/Man5.svg','assets/tiles/Man6.svg','assets/tiles/Man7.svg','assets/tiles/Man8.svg','assets/tiles/Man9.svg','assets/tiles/Nan.svg','assets/tiles/Pei.svg','assets/tiles/Pin1.svg','assets/tiles/Pin2.svg','assets/tiles/Pin3.svg','assets/tiles/Pin4.svg','assets/tiles/Pin5.svg','assets/tiles/Pin6.svg','assets/tiles/Pin7.svg','assets/tiles/Pin8.svg','assets/tiles/Pin9.svg','assets/tiles/Shaa.svg','assets/tiles/Sou1.svg','assets/tiles/Sou2.svg','assets/tiles/Sou3.svg','assets/tiles/Sou4.svg','assets/tiles/Sou5.svg','assets/tiles/Sou6.svg','assets/tiles/Sou7.svg','assets/tiles/Sou8.svg','assets/tiles/Sou9.svg','assets/tiles/Ton.svg',
 ];

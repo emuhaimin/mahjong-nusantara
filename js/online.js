@@ -116,6 +116,10 @@ const Online = (() => {
     if (S.g) renderGame();
   }
 
+  const LV = { easy: ['🟢', 'Easy'], medium: ['🟡', 'Medium'], hard: ['🟠', 'Hard'], expert: ['🔴', 'Expert'], mix: ['🎲', 'Campuran'] };
+  const lvTxt = l => (LV[l] ? LV[l][1] : 'Medium');
+  const lvTag = l => (LV[l] ? `<span class="lv-tag lv-${l}" title="Tingkat AI">${LV[l][1]}</span>` : '');
+
   /** link & pesan undangan WhatsApp */
   const inviteLink = () => `${location.origin}${location.pathname}#online/${S.code}`;
   function inviteText() {
@@ -124,7 +128,7 @@ const Online = (() => {
     const lenTxt = { one: '1 hand', east: '1 ronde angin', full: '4 ronde angin' }[S.opts.length];
     return `🀄 *Ayo main Mahjong bareng${me ? ' ' + me : ''}!*\n\n` +
       `Kode room: *${S.code}*\n` +
-      `Aturan: minimal ${S.opts.minFan} fan · ${lenTxt}` + (free ? (S.phase === 'lobby' ? ` · ${free} kursi masih kosong` : ` · ${free} kursi bot bisa kamu gantikan`) : '') + `\n\n` +
+      `Aturan: minimal ${S.opts.minFan} fan · ${lenTxt} · bot ${lvTxt(S.opts.level)}` + (free ? (S.phase === 'lobby' ? ` · ${free} kursi masih kosong` : ` · ${free} kursi bot bisa kamu gantikan`) : '') + `\n\n` +
       (S.phase === 'lobby' ? '' : `Permainan sudah berjalan — kamu akan menggantikan salah satu bot.\n\n`) +
       `Ketuk link ini untuk langsung gabung:\n${inviteLink()}`;
   }
@@ -140,10 +144,10 @@ const Online = (() => {
     $('#on-shareb').hidden = !navigator.share;
     const isHost = S.host === S.you;
     $('#on-seats').innerHTML = S.seats.map((s, i) => s
-      ? `<div class="seat-item"><span class="dot${s.connected ? '' : ' off'}"></span><b>${esc(s.name)}</b>${i === S.you ? '<span class="tag me">Kamu</span>' : ''}${i === S.host ? '<span class="tag">Host</span>' : ''}</div>`
-      : `<div class="seat-item empty"><span class="dot off"></span>Kursi ${i + 1} kosong — akan diisi bot</div>`).join('');
-    $('#on-r-minfan').value = S.opts.minFan; $('#on-r-length').value = S.opts.length;
-    $('#on-r-minfan').disabled = $('#on-r-length').disabled = !isHost;
+      ? `<div class="seat-item"><span class="dot${s.connected ? '' : ' off'}"></span><b>${esc(s.name)}</b>${i === S.you ? '<span class="tag me">Kamu</span>' : ''}${i === S.host ? '<span class="tag">Host</span>' : ''}${s.human ? '' : ' ' + lvTag(s.level)}</div>`
+      : `<div class="seat-item empty"><span class="dot off"></span>Kursi ${i + 1} kosong — akan diisi bot ${lvTag(S.opts.level === 'mix' ? null : S.opts.level)}</div>`).join('');
+    $('#on-r-minfan').value = S.opts.minFan; $('#on-r-length').value = S.opts.length; $('#on-r-level').value = S.opts.level || 'medium';
+    $('#on-r-minfan').disabled = $('#on-r-length').disabled = $('#on-r-level').disabled = !isHost;
     $('#on-start').hidden = !isHost;
     const n = S.seats.filter(Boolean).length;
     $('#on-roomnote').innerHTML = isHost
@@ -158,7 +162,7 @@ const Online = (() => {
     const g = S.g;
     for (let i = 0; i < 4; i++) renderSeat(i);
     const lenTxt = { one: '1 hand', east: '1 ronde angin', full: '4 ronde angin' }[S.opts.length];
-    $('#on-info').innerHTML = `🌐 Room <b>${esc(S.code)}</b> · Minimal <b>${S.opts.minFan}</b> fan · ${lenTxt}${S.offline ? ' · <span class="on-err">terputus, menyambung ulang…</span>' : ''}`;
+    $('#on-info').innerHTML = `🌐 Room <b>${esc(S.code)}</b> · Minimal <b>${S.opts.minFan}</b> fan · ${lenTxt} · AI ${LV[S.opts.level] ? LV[S.opts.level].join(' ') : 'Medium'}${S.offline ? ' · <span class="on-err">terputus, menyambung ulang…</span>' : ''}`;
     $('#on-center').innerHTML = `<div class="c-round"><span class="c-wind">${WIND_CH[Math.min(g.roundWind, 3)]}</span><div><b>Ronde Angin ${WIND_ID[Math.min(g.roundWind, 3)]}</b><small>Hand ke-${g.handNo} · Dealer: ${esc(g.players[g.dealer].name)}</small></div></div>
       <div class="c-wall">Sisa tembok: <b>${g.wall}</b></div>
       ${g.dice ? `<div class="c-dice">${g.dice.map(dieCh).join('')}</div>` : ''}
@@ -179,7 +183,7 @@ const Online = (() => {
     const g = S.g, pl = g.players[i], pos = POS[rel(i)], seat = S.seats[i] || {};
     const el = $('#on-s-' + pos), sw = windOf(i), me = i === S.you, side = pos === 'left' || pos === 'right';
     el.className = `seat slot-${pos === 'bottom' ? 'me' : pos} pos-${pos}${g.turn === i ? ' active' : ''}`;
-    const tag = seat.human ? (seat.connected ? '' : ' · <span class="on-err">terputus</span>') : ' · bot';
+    const tag = seat.human ? (seat.connected ? '' : ' · <span class="on-err">terputus</span>') : ` · ${seat.level ? lvTag(seat.level) : 'bot'}`;
     const info = `<div class="seat-info"><span class="wind-badge w${sw}">${WIND_CH[sw]}</span><span class="who"><b>${esc(pl.name)}</b><small>${WIND_ID[sw]}${i === g.dealer ? ' · Dealer' : ''}${tag}</small></span><span class="pts">${pl.score}</span><span class="cnt">${pl.count} kartu</span>${pl.flowers.length ? `<span class="flw">${pl.flowers.map(k => tileHTML(k, { cls: 'xxs' })).join('')}</span>` : ''}</div>`;
     let hand;
     if (pl.hand) {
@@ -327,7 +331,7 @@ const Online = (() => {
     const name = myName();
     save({ name });
     status('Membuat room…');
-    sendWhenOpen({ t: 'create', name, token: token(), opts: { minFan: +$('#on-minfan').value, length: $('#on-length').value } });
+    sendWhenOpen({ t: 'create', name, token: token(), opts: { minFan: +$('#on-minfan').value, length: $('#on-length').value, level: $('#on-level').value } });
   }
   function join(code) {
     code = (code || $('#on-code').value).trim().toUpperCase();
@@ -357,7 +361,10 @@ const Online = (() => {
     };
     $('#on-shareb').onclick = () => navigator.share && navigator.share({ title: 'Main Mahjong bareng', text: inviteText().replace(/\*/g, '').replace(/\n[^\n]*$/, ''), url: inviteLink() }).catch(() => { });
     ['#on-wa', '#on-wa2'].forEach(q => $(q).addEventListener('click', () => { if (S) setInvite(); }));
-    $('#on-r-minfan').onchange = $('#on-r-length').onchange = () => send({ t: 'opts', opts: { minFan: +$('#on-r-minfan').value, length: $('#on-r-length').value } });
+    $('#on-r-minfan').onchange = $('#on-r-length').onchange = $('#on-r-level').onchange = () => send({ t: 'opts', opts: { minFan: +$('#on-r-minfan').value, length: $('#on-r-length').value, level: $('#on-r-level').value } });
+    // tingkat bot terakhir yang dipilih (sama dengan Main vs Mesin) jadi bawaan saat membuat room
+    try { const v = localStorage.getItem('mjn-level'); if (v && LV[v]) $('#on-level').value = v; } catch { }
+    $('#on-level').addEventListener('change', e => { try { localStorage.setItem('mjn-level', e.target.value); } catch { } });
     $('#on-hint').onchange = () => S && S.g && renderGame();
     document.querySelector('[data-drawer="on-drawer"]').addEventListener('click', () => setTimeout(() => {
       if (!S || !S.g) return;

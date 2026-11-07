@@ -178,6 +178,7 @@
           <h3>Buat room baru</h3>
           <div class="form-grid" style="grid-template-columns:1fr;margin:10px 0 14px">
             <label>Minimal fan<select id="on-minfan"><option value="0">0 — bebas</option><option value="1" selected>1 fan</option><option value="3">3 fan (standar HK)</option></select></label>
+            <label>Tingkat bot (AI)<select id="on-level"><option value="easy">🟢 Easy</option><option value="medium" selected>🟡 Medium</option><option value="hard">🟠 Hard</option><option value="expert">🔴 Expert</option><option value="mix">🎲 Campuran</option></select></label>
             <label>Panjang permainan<select id="on-length"><option value="one">1 hand</option><option value="east" selected>1 ronde angin</option><option value="full">4 ronde angin</option></select></label>
           </div>
           <button class="btn big" id="on-create">Buat Room</button>
@@ -202,6 +203,7 @@
       <div class="seat-list" id="on-seats"></div>
       <div class="form-grid" style="margin:0 0 16px">
         <label>Minimal fan<select id="on-r-minfan"><option value="0">0 — bebas</option><option value="1">1 fan</option><option value="3">3 fan (standar HK)</option></select></label>
+        <label>Tingkat bot (AI)<select id="on-r-level"><option value="easy">🟢 Easy</option><option value="medium">🟡 Medium</option><option value="hard">🟠 Hard</option><option value="expert">🔴 Expert</option><option value="mix">🎲 Campuran</option></select></label>
         <label>Panjang permainan<select id="on-r-length"><option value="one">1 hand</option><option value="east">1 ronde angin</option><option value="full">4 ronde angin</option></select></label>
       </div>
       <div class="stage-ctrl"><button class="btn big" id="on-start">Mulai Permainan</button><button class="btn ghost" id="on-leave1">Keluar room</button></div>
@@ -259,6 +261,7 @@
 <script src="js/rules.js"></script>
 <script src="js/fx.js"></script>
 <script src="js/record.js"></script>
+<script src="js/ai.js"></script>
 <script src="js/game.js"></script>
 <script src="js/learn.js"></script>
 <script src="js/online.js"></script>
