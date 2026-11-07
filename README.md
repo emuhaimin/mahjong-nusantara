@@ -14,6 +14,20 @@ Buka `http://localhost:3000`. Teman di Wi-Fi yang sama bisa membuka alamat `http
 
 Mode offline (Belajar, Main vs Mesin, Simulasi Bot) juga jalan dengan membuka `index.html` langsung — hanya mode Online yang butuh server.
 
+## Tingkat lawan AI (Main vs Mesin & Simulasi)
+
+Bot memakai AI berbasis aturan (bukan *machine learning*): menghitung jarak tangan ke Ting (shanten), peluang kartu yang tersisa, fan, dan bahaya buangan. Pilih tingkatnya di layar pengaturan (diingat di perangkat):
+
+| Tingkat | Perilaku |
+|---|---|
+| 🟢 Easy | Sering membuang asal, asal klaim Pong/Chow, tidak menghitung peluang kartu |
+| 🟡 Medium | Mengejar Ting dengan benar, tapi ±30% buangan acak dan tidak mengejar Flush |
+| 🟠 Hard | Hitung peluang kartu tersisa, jaga kartu bernilai, kejar Flush; sesekali (10%) kurang teliti |
+| 🔴 Expert | Tidak pernah ceroboh, selalu kejar fan besar, membaca lawan (meld terbuka, lamanya bermain, kartu yang baru lolos) dan membuang kartu aman saat lawan hampir Hu |
+| 🎲 Campuran | Tiap bot beda tingkat (main: Medium/Hard/Expert · simulasi: Easy/Medium/Hard/Expert) |
+
+Saran langkah untuk pemain selalu memakai penilaian Hard. Bot di mode Online (`server/engine.js`) belum memakai tingkat ini.
+
 ## Main tanpa internet (mode pesawat)
 
 Buka situs sekali saat ada internet (atau pasang sebagai aplikasi). Service worker (`sw.js`) menyimpan semua halaman, kode, gambar kartu, dan font. Setelah itu **Belajar**, **Main vs Mesin**, **Simulasi Bot**, dan **Aturan & Poin** jalan sepenuhnya offline. Beranda menampilkan “✅ Siap dimainkan tanpa internet” kalau semuanya sudah tersimpan.

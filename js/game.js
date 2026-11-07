@@ -34,17 +34,23 @@ const Game = (() => {
   /* ================= SIKLUS PERMAINAN ================= */
   function start(config) {
     stop();
-    cfg = Object.assign({ mode: 'play', name: 'Kamu', minFan: 1, speed: 'normal', hint: true, showHands: false, length: 'east' }, config);
+    cfg = Object.assign({ mode: 'play', name: 'Kamu', minFan: 1, speed: 'normal', hint: true, showHands: false, length: 'east', level: 'medium' }, config);
     const watch = cfg.mode === 'watch';
+    if (!LEVELS[cfg.level] && cfg.level !== 'mix') cfg.level = 'medium';
     const names = watch ? ['Bot Ani', 'Bot Budi', 'Bot Citra', 'Bot Dedi'] : [cfg.name || 'Kamu', 'Bot Budi', 'Bot Citra', 'Bot Dedi'];
+    // campuran: tiap bot beda tingkat (simulasi: Easy, Medium, Hard, Expert · main: Medium, Hard, Expert)
+    const MIX = watch ? ['easy', 'medium', 'hard', 'expert'] : [null, 'medium', 'hard', 'expert'];
     G = {
-      players: names.map((n, i) => ({ name: n, isAI: watch || i > 0, score: 500, hand: [], melds: [], flowers: [], discards: [], drawn: null })),
+      players: names.map((n, i) => ({
+        name: n, isAI: watch || i > 0, level: (watch || i > 0) ? (cfg.level === 'mix' ? MIX[i] : cfg.level) : null,
+        score: 500, hand: [], melds: [], flowers: [], discards: [], drawn: null,
+      })),
       dealer: 0, firstDealer: 0, roundWind: 0, handNo: 0, wall: [], turn: -1, log: [], msg: '', dice: null,
       ui: null, reveal: false, lastDiscard: null, callout: null,
     };
     // rekam sesi pemain (disimpan ke akun jika login)
     G.rec = !watch && typeof MjnRecorder !== 'undefined'
-      ? new MjnRecorder({ mode: 'bot', minFan: cfg.minFan, length: cfg.length, opponents: names.slice(1) }) : null;
+      ? new MjnRecorder({ mode: 'bot', minFan: cfg.minFan, length: cfg.length, opponents: names.slice(1), level: cfg.level }) : null;
     G.recSent = false;
     $('#setup').hidden = true; $('#game').hidden = false;
     syncTools();
@@ -98,7 +104,8 @@ const Game = (() => {
 
   async function playHand() {
     G.handNo++;
-    for (const pl of G.players) { pl.hand = []; pl.melds = []; pl.flowers = []; pl.discards = []; pl.drawn = null; }
+    for (const pl of G.players) { pl.hand = []; pl.melds = []; pl.flowers = []; pl.discards = []; pl.drawn = null; pl.lastSeq = 0; }
+    G.hist = []; G.seq = 0;
     G.lastDiscard = null; G.turn = G.dealer; G.ui = null; G.reveal = false;
     const tiles = []; let id = 0;
     for (let k = 0; k < 34; k++) for (let c = 0; c < 4; c++) tiles.push({ id: id++, k });
@@ -256,7 +263,7 @@ const Game = (() => {
         act = AI.turn(p, win, kongs);
       } else {
         const ui = { mode: 'turn', win, kongs, selected: null };
-        const h = AI.evalDiscard(p);
+        const h = AI.evalDiscard(p, 'hard');
         if (cfg.hint) {
           ui.hintId = h.id; ui.hintK = h.k; ui.hintS = h.s;
           if (h.s === 0) {
@@ -295,6 +302,9 @@ const Game = (() => {
     const t = pl.hand.splice(i, 1)[0];
     pl.discards.push(t); pl.drawn = null;
     G.lastDiscard = { p, id: t.id };
+    G.seq = (G.seq || 0) + 1;
+    G.hist.push({ k: t.k, seq: G.seq, p });     // riwayat buangan (termasuk yang nanti diklaim) untuk AI Expert
+    pl.lastSeq = G.seq;
     log(`${pname(p)} membuang ${tileName(t.k)}.`);
     return t;
   }
@@ -332,7 +342,7 @@ const Game = (() => {
       if (pl.isAI) d = AI.claim(o.p, tile, o);
       else {
         const ui = { mode: 'claim', tile, from, opt: o };
-        const sug = AI.claim(o.p, tile, o);
+        const sug = AI.claim(o.p, tile, o, 'hard');
         if (cfg.hint) {
           const s = sug;
           ui.hint = s ? `Saran: <b>${s.type === 'win' ? 'Hu (menang)' : s.type === 'chow' ? 'Chow' : s.type === 'kong' ? 'Kong' : 'Pong'}</b>.` : 'Saran: lewati — klaim ini tidak mempercepat tanganmu.';
@@ -538,35 +548,107 @@ const Game = (() => {
     }
     return b;
   }
+  /* ---------- pertahanan (dipakai level Expert) ---------- */
+  /** seberapa besar kemungkinan lawan q sudah Ting (0–1), dari Pong/Chow terbuka & sisa tembok */
+  function threatOf(q) {
+    const pl = G.players[q], m = pl.melds.filter(x => !x.concealed).length, w = G.wall.length, n = pl.discards.length;
+    let t = m >= 3 ? .85 : m === 2 ? .5 : m === 1 ? .25 : .1;
+    if (n >= 6) t += .15;                       // makin lama bermain, makin mungkin sudah Ting
+    if (n >= 10) t += .2;
+    if (w < 20) t += .15;
+    return Math.min(1, t);
+  }
+  /** suit yang sedang dikumpulkan lawan q (Flush terlihat dari meld terbuka), atau null */
+  function openFlushSuit(q) {
+    const ms = G.players[q].melds.filter(x => !x.concealed && x.k < 27);
+    if (ms.length < 2) return null;
+    const su = Math.floor(ms[0].k / 9);
+    return ms.every(x => Math.floor(x.k / 9) === su) && G.players[q].melds.every(x => x.k >= 27 || Math.floor(x.k / 9) === su) ? su : null;
+  }
+  /** risiko membuang kartu k ke lawan q (≈0 aman … 1+ berbahaya) */
+  function dangerTo(q, k, left) {
+    if (left <= 0) return 0.05;                 // semua lembar sudah terlihat → hampir pasti aman
+    // kartu ini sudah dibuang orang lain SETELAH giliran terakhir q dan q tidak Hu → tangan q belum berubah, jadi aman
+    const ls = G.players[q].lastSeq || 0;
+    if (G.hist.some(h => h.k === k && h.seq > ls && h.p !== q)) return 0.02;
+    let d;
+    if (k >= 27) d = left === 1 ? .12 : left === 2 ? .45 : .7;
+    else {
+      const r = k % 9;
+      d = r === 0 || r === 8 ? .55 : r === 1 || r === 7 ? .8 : 1;
+      if (left === 1) d *= .6;
+      const fs = openFlushSuit(q);
+      if (fs != null) d *= Math.floor(k / 9) === fs ? 2 : .35;
+    }
+    if (G.players[q].discards.some(t => t.k === k)) d *= .45;   // lawan sendiri membuangnya → jarang ditunggu
+    return d;
+  }
+
+  /* ---------- tingkat kesulitan bot ----------
+     easy   : sering membuang asal, tidak menghitung peluang kartu, klaim sembarangan
+     medium : mengejar Ting dengan benar, kadang keliru, jarang mengejar Flush
+     hard   : hitung peluang kartu, bias kartu bernilai, kejar Flush; sesekali (10%) kurang teliti
+     expert : tidak pernah ceroboh + selalu kejar fan besar + membaca lawan & bertahan saat lawan Ting */
+  const LEVELS = {
+    easy: { label: 'Easy', ic: '🟢', sloppy: .3, ukeire: false, flush: 0, defense: false },
+    medium: { label: 'Medium', ic: '🟡', sloppy: .3, ukeire: true, flush: 0, defense: false },
+    hard: { label: 'Hard', ic: '🟠', sloppy: .1, ukeire: true, flush: .5, defense: false },
+    expert: { label: 'Expert', ic: '🔴', sloppy: 0, ukeire: true, flush: 1, defense: true },
+  };
+  const lvOf = p => LEVELS[(G.players[p] && G.players[p].level) || 'hard'] || LEVELS.hard;
+  const pick = a => a[rnd(a.length)];
+
   const AI = {
-    evalDiscard(p) {
-      const pl = G.players[p];
+    /** pilih kartu yang dibuang. level: nama tingkat (default: tingkat pemain / 'hard' untuk saran manusia) */
+    evalDiscard(p, level) {
+      const pl = G.players[p], L = LEVELS[level] || lvOf(p);
       const c = toCounts(kindsOf(pl)), open = pl.melds.length, vis = visibleCounts();
-      const fl = cfg.minFan >= 2 || Math.random() < .5 ? flushTarget(pl) : null;
-      let cands = [...new Set(kindsOf(pl))].map(k => { c[k]--; const s = shantenAll(c, open); c[k]++; return { k, s }; });
-      const minS = Math.min(...cands.map(x => x.s));
-      cands = cands.filter(x => x.s === minS);
+      const fl = cfg.minFan >= 2 || Math.random() < L.flush ? flushTarget(pl) : null;
+      const all = [...new Set(kindsOf(pl))].map(k => { c[k]--; const s = shantenAll(c, open); c[k]++; return { k, s }; });
+      const minS = Math.min(...all.map(x => x.s));
+      const choose = k => {
+        const t = pl.hand.find(t => t.k === k && t.id === pl.drawn) || pl.hand.find(t => t.k === k);
+        return { id: t.id, k, s: all.find(x => x.k === k).s };
+      };
+      // Easy/Medium kadang ceroboh: buang acak (Easy boleh sampai menjauhkan Ting)
+      if (L.sloppy && Math.random() < L.sloppy) {
+        const pool = all.filter(x => x.s <= minS + (L.ukeire ? 0 : 1));
+        return choose(pick(pool).k);
+      }
+      // Expert bertahan: kartu yang menjauhkan Ting tetap dipertimbangkan bila lawan berbahaya
+      const opps = L.defense ? [0, 1, 2, 3].filter(q => q !== p).map(q => ({ q, t: threatOf(q) })) : [];
+      const maxT = opps.reduce((m, o) => Math.max(m, o.t), 0);
+      const fold = L.defense && minS >= 2 && maxT >= .45;     // boleh menjauh dari Ting demi membuang kartu aman
+      const cands = all.filter(x => x.s <= minS + (fold ? 1 : 0));
       for (const x of cands) {
-        c[x.k]--;
         let u = 0;
-        for (let y = 0; y < 34; y++) {
-          const left = 4 - c[y] - vis[y];
-          if (left <= 0) continue;
-          c[y]++;
-          if (shantenAll(c, open) < x.s) u += left;
-          c[y]--;
+        if (L.ukeire && x.s === minS) {
+          c[x.k]--;
+          for (let y = 0; y < 34; y++) {
+            const left = 4 - c[y] - vis[y];
+            if (left <= 0) continue;
+            c[y]++;
+            if (shantenAll(c, open) < x.s) u += left;
+            c[y]--;
+          }
+          c[x.k]++;
         }
-        c[x.k]++;
-        x.u = u; x.score = u + discardBias(p, x.k, c, fl);
+        x.u = u;
+        x.score = (L.ukeire ? u : 0) + discardBias(p, x.k, c, fl) + (L.ukeire ? 0 : Math.random() * 2);
+        if (L.defense) {                       // Expert selalu menimbang bahaya; makin jauh dari Ting makin hati-hati
+          const left = 4 - c[x.k] - vis[x.k];   // lembar yang belum terlihat dari sudut pandang bot
+          const danger = opps.reduce((sum, o) => sum + o.t * dangerTo(o.q, x.k, left), 0);
+          const w = minS <= 0 ? 4 : minS === 1 ? 10 : 36;
+          x.score -= danger * w + (x.s - minS) * 14;
+        }
       }
       cands.sort((a, b) => b.score - a.score);
-      const best = cands[0];
-      const t = pl.hand.find(t => t.k === best.k && t.id === pl.drawn) || pl.hand.find(t => t.k === best.k);
-      return { id: t.id, k: best.k, s: best.s };
+      return choose(cands[0].k);
     },
     turn(p, win, kongs) {
       if (win && !win.insufficient) return { type: 'tsumo' };
-      const pl = G.players[p];
+      const pl = G.players[p], L = lvOf(p);
+      if (L === LEVELS.easy && kongs.length) return { type: 'kong', k: kongs[0].k };   // Easy selalu Kong
       for (const o of kongs) {
         if (o.kind === 'add') return { type: 'kong', k: o.k };
         const c = toCounts(kindsOf(pl));
@@ -576,8 +658,16 @@ const Game = (() => {
       }
       return { type: 'discard', id: AI.evalDiscard(p).id };
     },
-    claim(p, tile, o) {
+    claim(p, tile, o, level) {
       if (o.win) return { type: 'win' };
+      const L = LEVELS[level] || lvOf(p);
+      if (L === LEVELS.easy) {                 // Easy: klaim karena “kelihatannya bagus”, tanpa menghitung fan
+        const ok = cfg.minFan === 0 || fanEstimate(p, tile.k) >= cfg.minFan || isValue(p, tile.k);
+        if (o.kong && ok) return { type: 'kong' };
+        if (o.pong && ok && Math.random() < .6) return { type: 'pong' };
+        if (o.chows.length && (cfg.minFan === 0 || fanEstimate(p, null) >= cfg.minFan) && Math.random() < .35) return { type: 'chow', s: pick(o.chows) };
+        return null;
+      }
       const pl = G.players[p], k = tile.k, open = pl.melds.length;
       const c = toCounts(kindsOf(pl));
       const cur = shantenAll(c, open);
@@ -591,6 +681,7 @@ const Game = (() => {
       };
       const fl = flushTarget(pl);
       const fits = fl == null || k >= 27 || Math.floor(k / 9) === fl;
+      if (L.defense && cur >= 2 && [0, 1, 2, 3].some(q => q !== p && threatOf(q) >= .6)) return null;  // Expert: lawan hampir Hu, jangan buka tangan
       const okFan = extra => cfg.minFan === 0 || fanEstimate(p, extra) >= cfg.minFan;
       if (o.kong) {
         c[k] -= 3; const s = shantenAll(c, open + 1); c[k] += 3;
@@ -600,7 +691,7 @@ const Game = (() => {
         const s = after([k, k]);
         if (okFan(k) && fits && (s < cur || (val && s <= cur))) return { type: 'pong' };
       }
-      if (o.chows.length && fits && okFan(null)) {
+      if (o.chows.length && fits && okFan(null) && !(L.defense && cur >= 3 && open === 0)) {   // Expert: tangan jauh → tetap tertutup
         let best = null;
         for (const s0 of o.chows) {
           const rm = [s0, s0 + 1, s0 + 2]; rm.splice(rm.indexOf(k), 1);
@@ -628,7 +719,8 @@ const Game = (() => {
     renderCenter(); renderActions(); renderInfo();
   }
   function renderInfo() {
-    $('#game-info').innerHTML = `${cfg.mode === 'watch' ? '🤖 <b>Simulasi 4 bot</b>' : '🀄 <b>Main vs Mesin</b>'} · Minimal <b>${cfg.minFan}</b> fan · ${cfg.length === 'one' ? '1 hand' : cfg.length === 'east' ? '1 ronde angin' : '4 ronde angin'}`;
+    const lv = cfg.level === 'mix' ? '🎲 <b>Campuran</b>' : `${LEVELS[cfg.level].ic} <b>${LEVELS[cfg.level].label}</b>`;
+    $('#game-info').innerHTML = `${cfg.mode === 'watch' ? '🤖 <b>Simulasi 4 bot</b>' : '🀄 <b>Main vs Mesin</b>'} · AI ${lv} · Minimal <b>${cfg.minFan}</b> fan · ${cfg.length === 'one' ? '1 hand' : cfg.length === 'east' ? '1 ronde angin' : '4 ronde angin'}`;
   }
   function renderSeat(p) {
     const pl = G.players[p], pos = POS[p], el = $('#seat-' + p), sw = seatWind(p);
@@ -637,7 +729,7 @@ const Game = (() => {
     const side = pos === 'left' || pos === 'right';
     el.className = `seat ${SLOT[p]} pos-${pos}${G.turn === p ? ' active' : ''}`;
 
-    const info = `<div class="seat-info"><span class="wind-badge w${sw}" title="Angin kursi: ${WIND_ID[sw]}">${WIND_CH[sw]}</span><span class="who"><b>${esc(pl.name)}</b><small>${WIND_ID[sw]}${p === G.dealer ? ' · Dealer' : ''}</small></span><span class="pts" title="Skor">${pl.score}</span><span class="cnt">${pl.hand.length} kartu</span>${pl.flowers.length ? `<span class="flw">${pl.flowers.map(k => tileHTML(k, { cls: 'xxs' })).join('')}</span>` : ''}</div>`;
+    const info = `<div class="seat-info"><span class="wind-badge w${sw}" title="Angin kursi: ${WIND_ID[sw]}">${WIND_CH[sw]}</span><span class="who"><b>${esc(pl.name)}</b><small>${WIND_ID[sw]}${p === G.dealer ? ' · Dealer' : ''}${pl.level ? ` · <span class="lv-tag lv-${pl.level}" title="Tingkat AI">${LEVELS[pl.level].label}</span>` : ''}</small></span><span class="pts" title="Skor">${pl.score}</span><span class="cnt">${pl.hand.length} kartu</span>${pl.flowers.length ? `<span class="flw">${pl.flowers.map(k => tileHTML(k, { cls: 'xxs' })).join('')}</span>` : ''}</div>`;
 
     const sorted = pl.hand.slice().sort(sortT);
     let drawnT = null;
@@ -755,5 +847,5 @@ const Game = (() => {
     });
   }
 
-  return { init, start, stop, quit, isRunning, mode };
+  return { init, start, stop, quit, isRunning, mode, LEVELS };
 })();

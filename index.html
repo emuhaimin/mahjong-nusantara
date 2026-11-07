@@ -52,7 +52,7 @@
     </div>
     <div class="cards">
       <a class="card link" href="#learn"><span class="card-ic">📘</span><h3>Belajar dari Nol</h3><p>17 langkah: kenal kartu, tentukan dealer, kocok, susun &amp; pecah tembok, bagi kartu, klaim, menang, hitung fan.</p></a>
-      <a class="card link" href="#play"><span class="card-ic">🀄</span><h3>Main vs Mesin</h3><p>Kamu melawan 3 bot. Ada saran langkah, info “Ting” dan kartu yang ditunggu.</p></a>
+      <a class="card link" href="#play"><span class="card-ic">🀄</span><h3>Main vs Mesin</h3><p>Kamu melawan 3 bot AI — pilih tingkat Easy, Medium, Hard, atau Expert. Ada saran langkah dan info “Ting”.</p></a>
       <a class="card link" href="#online" data-needs-net><span class="card-ic">🌐</span><h3>Main Online</h3><p>Buat room, bagikan kode ke teman, main bareng dari HP atau laptop. Kursi kosong diisi bot.</p></a>
       <a class="card link" href="#watch"><span class="card-ic">🤖</span><h3>Simulasi Bot</h3><p>Tonton 4 bot bermain dengan kartu terbuka. Atur kecepatan dan baca log tiap langkah.</p></a>
       <a class="card link" href="#rules"><span class="card-ic">🧮</span><h3>Aturan &amp; Poin</h3><p>Tabel fan, tabel poin, cara bayar, dan pergantian dealer dalam satu halaman ringkas.</p></a>
@@ -95,6 +95,16 @@
           </select>
         </label>
         <label id="lbl-name">Nama kamu <input id="cfg-name" value="Kamu" maxlength="14"></label>
+        <label>Tingkat lawan (AI)
+          <select id="cfg-level">
+            <option value="easy">🟢 Easy — santai, sering keliru</option>
+            <option value="medium" selected>🟡 Medium — cukup paham</option>
+            <option value="hard">🟠 Hard — hitung peluang kartu</option>
+            <option value="expert">🔴 Expert — baca lawan &amp; bertahan</option>
+            <option value="mix">🎲 Campuran — tiap bot beda tingkat</option>
+          </select>
+          <small class="lv-desc" id="cfg-level-desc"></small>
+        </label>
         <label>Minimal fan untuk menang
           <select id="cfg-minfan">
             <option value="0">0 — bebas (pemula)</option>
