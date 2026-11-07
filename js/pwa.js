@@ -1,4 +1,5 @@
-/* pwa.js — pasang sebagai aplikasi (PWA), mode layar penuh di HP, pembaruan otomatis */
+/* pwa.js — pasang sebagai aplikasi (PWA), mode layar penuh di HP, pembaruan otomatis,
+   dan mode offline / mode pesawat (penanda koneksi + kabar "siap dimainkan tanpa internet") */
 const PWA = (() => {
   const $$ = s => document.querySelectorAll(s);
   const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
@@ -37,7 +38,36 @@ const PWA = (() => {
     } else if (isIOS) iosGuide();
   }
 
+  /* ---------- offline / mode pesawat ---------- */
+  const READY_KEY = 'mjn-offline-ready';
+  const isOffline = () => navigator.onLine === false;
+  function syncNet() {
+    const off = isOffline();
+    document.documentElement.classList.toggle('is-offline', off);
+    const b = document.getElementById('net-banner');
+    if (b) b.hidden = !off;
+    document.dispatchEvent(new CustomEvent('mjn-net', { detail: { offline: off } }));
+  }
+  function askReady(sw) { if (sw) sw.postMessage({ t: 'offline-ready?' }); }
+  function onSwMessage(e) {
+    if (!e.data || e.data.t !== 'offline-ready') return;
+    const el = document.getElementById('offline-state');
+    if (el) {
+      el.textContent = e.data.ok ? '✅ Siap dimainkan tanpa internet (mode pesawat)' : '⏳ Menyiapkan mode offline…';
+      el.classList.toggle('ok', !!e.data.ok);
+    }
+    let seen = null; try { seen = localStorage.getItem(READY_KEY); } catch { }
+    if (e.data.ok && seen !== e.data.version) {
+      try { localStorage.setItem(READY_KEY, e.data.version); } catch { }
+      if (seen === null && window.FX) FX.toast('✈️ Siap offline: Belajar, Main vs Mesin & Simulasi Bot bisa dimainkan tanpa internet.');
+    }
+  }
+
   function init() {
+    window.addEventListener('online', syncNet);
+    window.addEventListener('offline', () => { syncNet(); if (window.FX) FX.toast('✈️ Kamu sedang offline — mode Belajar, vs Mesin & Simulasi tetap bisa dimainkan.'); });
+    syncNet();
+
     window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; syncButtons(); });
     window.addEventListener('appinstalled', () => { deferred = null; syncButtons(); });
     document.addEventListener('click', e => { if (e.target.closest('[data-install]')) install(); });
@@ -52,9 +82,12 @@ const PWA = (() => {
 
     if ('serviceWorker' in navigator && location.protocol !== 'file:') {
       navigator.serviceWorker.register('sw.js').catch(() => { });
+      navigator.serviceWorker.addEventListener('message', onSwMessage);
+      navigator.serviceWorker.ready.then(reg => askReady(reg.active)).catch(() => { });
       // versi baru terpasang → muat ulang, tapi jangan saat sedang bermain
       let had = !!navigator.serviceWorker.controller;
       navigator.serviceWorker.addEventListener('controllerchange', () => {
+        askReady(navigator.serviceWorker.controller);
         if (!had) { had = true; return; }
         if (document.body.classList.contains('in-game')) reloadPending = true;
         else location.reload();
@@ -63,8 +96,12 @@ const PWA = (() => {
         if (reloadPending && !document.body.classList.contains('in-game')) location.reload();
       }).observe(document.body, { attributes: true, attributeFilter: ['class'] });
     }
+    else {
+      const el = document.getElementById('offline-state');
+      if (el) el.textContent = 'Dibuka langsung dari file: semua mode kecuali Online jalan tanpa internet.';
+    }
     syncButtons();
   }
-  return { init, isApp };
+  return { init, isApp, isOffline };
 })();
 PWA.init();

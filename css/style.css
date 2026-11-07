@@ -679,3 +679,15 @@ button,.btn,a,select,input,label{touch-action:manipulation}
 .alias-field input{font-size:18px;min-height:52px;padding:12px 14px;border-radius:14px;border:1px solid var(--line);background:var(--surface-2);color:var(--ink);width:100%}
 .alias-hint{display:block;color:var(--muted);font-size:12px;margin-top:6px}
 .alias-err{margin:8px 0 0;font-size:14px}
+
+/* ---------- offline / mode pesawat ---------- */
+.net-banner{padding:8px 16px;background:#3a3f45;color:#fff;font-size:14px;text-align:center;line-height:1.4}
+body.in-game .net-banner{display:none!important}
+.offline-box{margin-top:16px;padding:14px 18px;border:1px dashed var(--line);border-radius:12px;background:var(--surface-2);font-size:14px}
+.offline-box p{margin:0 0 .4em}
+.offline-state{color:var(--muted);font-weight:600}
+.offline-state.ok{color:var(--jade)}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .offline-state.ok{color:#5fd39f} }
+:root[data-theme="dark"] .offline-state.ok{color:#5fd39f}
+html.is-offline [data-needs-net]{opacity:.55}
+html.is-offline [data-needs-net] h3::after{content:" · butuh internet";font-size:12px;font-weight:600;color:var(--muted)}
