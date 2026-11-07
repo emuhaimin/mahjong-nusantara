@@ -38,6 +38,17 @@ Skrip ini (`deploy/install.sh`, dijalankan di VPS):
 
 **Alternatif tanpa SSH/GitHub (Browser Terminal hPanel):** jalankan `./deploy/make-paste.sh` di Mac → muncul folder `deploy-paste/` berisi potongan `1.txt`…`7.txt`. Salin satu per satu (`pbcopy < deploy-paste/1.txt`), tempel ke Browser Terminal VPS, tekan Enter. Potongan terakhir memeriksa checksum lalu menjalankan instalasi.
 
+**Lewat GitHub (disarankan):**
+
+```bash
+# sekali saja, di Browser Terminal VPS (root)
+git clone https://github.com/USERNAME/mahjong-nusantara.git /root/mahjong-nusantara
+cd /root/mahjong-nusantara && bash deploy/install.sh
+
+# setiap update: push dari Mac, lalu di VPS
+cd /root/mahjong-nusantara && git pull && bash deploy/install.sh
+```
+
 **Jika VPS memakai HestiaCP (rupaone.io):** `install.sh` otomatis mendeteksi Hestia. Ia tidak menyentuh nginx/certbot secara langsung, melainkan memasang template proxy `mahjong-node`, menambah web domain di Hestia, lalu meminta SSL lewat Let's Encrypt bawaan Hestia. Cara upload tanpa SSH:
 1. Di Mac: `./deploy/make-package.sh` → `mahjong-nusantara.tar.gz`.
 2. Upload file itu lewat File Manager Hestia ke folder home user.
