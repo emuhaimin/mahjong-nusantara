@@ -93,15 +93,17 @@
   /* ---------- penjaga sesi: Back & refresh tidak sengaja ---------- */
   // Saat bermain, satu entri riwayat "penjaga" ditambahkan. Tombol/gesture Back hanya
   // menghapus entri itu → kita pasang lagi dan tanyakan dulu apakah benar mau keluar.
-  let guarded = false, skipPop = false;
+  let guarded = false, guardHref = '';
   const inGame = () => document.body.classList.contains('in-game');
   function armBackGuard() {
     if (guarded) return;
-    history.pushState({ mjnGuard: true }, '', location.href);
+    guardHref = location.href;
+    history.pushState({ mjnGuard: true }, '', guardHref);
     guarded = true;
   }
   function disarmBackGuard() {
-    if (guarded && history.state && history.state.mjnGuard) { skipPop = true; history.back(); }
+    // jangan history.back() (bisa bertabrakan dengan navigasi) — cukup netralkan entri penjaga
+    if (guarded && history.state && history.state.mjnGuard) history.replaceState(null, '', location.href);
     guarded = false;
   }
   async function exitCurrentGame() {
@@ -109,8 +111,9 @@
     else Game.quit();
   }
   window.addEventListener('popstate', async () => {
-    if (skipPop) { skipPop = false; return; }
-    if (!inGame()) { guarded = false; return; }
+    if (!inGame() || !guarded) { guarded = false; return; }
+    // pindah lewat link/menu (alamat berubah) ≠ tombol Back (kembali ke alamat yang sama)
+    if (location.href !== guardHref) { guarded = false; return; }
     history.pushState({ mjnGuard: true }, '', location.href);   // tahan di meja
     guarded = true;
     const g = games.find(x => x.classList.contains('dr-open'));

@@ -252,7 +252,7 @@ table.tbl td.num{text-align:right;font-weight:800;white-space:nowrap}
   .learn-split{grid-template-columns:1fr}
 }
 /* HP: tampilan non-meja (daftar ringkas) */
-@media (max-width:820px){
+@media (max-width:820px) and (orientation:portrait), (max-width:639px){
   .topbar{padding:8px 12px;flex-wrap:wrap}
   .brand{font-size:16px}
   #nav{width:100%;overflow-x:auto;flex-wrap:nowrap}
@@ -313,7 +313,7 @@ table.tbl td.num{text-align:right;font-weight:800;white-space:nowrap}
 .chat form{display:flex;gap:8px}
 .chat form input{flex:1}
 .paused{background:rgba(192,38,45,.5);padding:6px 12px;border-radius:10px;font-size:13px}
-@media (max-width:820px){ .on-grid,.on-side{grid-template-columns:1fr} .code-big{font-size:36px} }
+@media (max-width:820px) and (orientation:portrait), (max-width:639px){ .on-grid,.on-side{grid-template-columns:1fr} .code-big{font-size:36px} }
 
 /* ---------- MODE MEJA PENUH (saat bermain) ---------- */
 body.in-game .topbar{display:none}
@@ -354,7 +354,7 @@ body.in-game .slot-left{padding-top:54px}
 .dr-nav a{text-decoration:none;padding:8px 6px;border-radius:8px;font-size:14px;color:var(--muted);font-weight:600}
 .dr-nav a:hover{background:var(--surface-2);color:var(--ink)}
 
-@media (max-width:820px){
+@media (max-width:820px) and (orientation:portrait), (max-width:639px){
   body.in-game .table{border-width:0;padding:8px}
   body.in-game .slot-left{padding-top:8px}
   body.in-game .table .slot-right{padding-right:56px}
@@ -368,7 +368,7 @@ body.in-game .table{
   padding-left:max(14px,env(safe-area-inset-left));padding-right:max(14px,env(safe-area-inset-right))}
 .tbl-menu{top:max(16px,calc(env(safe-area-inset-top) + 8px));left:max(16px,calc(env(safe-area-inset-left) + 8px))}
 .drawer{padding-top:max(16px,env(safe-area-inset-top));padding-bottom:max(22px,env(safe-area-inset-bottom))}
-@media (max-width:820px){
+@media (max-width:820px) and (orientation:portrait), (max-width:639px){
   .topbar{padding-left:max(12px,env(safe-area-inset-left));padding-right:max(12px,env(safe-area-inset-right))}
   body.in-game .table{padding-top:max(8px,env(safe-area-inset-top));padding-bottom:max(8px,env(safe-area-inset-bottom));
     padding-left:max(8px,env(safe-area-inset-left));padding-right:max(8px,env(safe-area-inset-right))}
@@ -395,7 +395,7 @@ html.in-game,body.in-game{overscroll-behavior:none;-webkit-tap-highlight-color:t
 @keyframes fxIn{from{transform:translate(-50%,-50%) scale(.25);opacity:0}}
 @keyframes fxBlink{to{opacity:.3;filter:brightness(1.5)}}
 @keyframes fxOut{to{transform:translate(-50%,-50%) scale(1.2);opacity:0}}
-@media (max-width:820px){.fx-call{padding:14px 30px 12px}.fx-call b{font-size:54px}.fx-hu b{font-size:72px}}
+@media (max-width:820px) and (orientation:portrait), (max-width:639px){.fx-call{padding:14px 30px 12px}.fx-call b{font-size:54px}.fx-hu b{font-size:72px}}
 @media (prefers-reduced-motion:reduce){.fx-call{animation:fxIn .2s both,fxOut .3s 1.9s forwards}}
 
 /* kotak aksi berkedip saat menunggu kamu */
@@ -419,3 +419,50 @@ html.in-game,body.in-game{overscroll-behavior:none;-webkit-tap-highlight-color:t
 @keyframes fxRise{from{opacity:0;transform:translateY(12px)}}
 .fx-toast{animation:fxToast .25s ease-out}
 @keyframes fxToast{from{opacity:0;transform:translate(-50%,12px)}}
+
+/* ---------- MEJA RINGKAS: layar lebar tapi pendek (HP landscape) ---------- */
+@media (min-width:640px) and (max-height:620px) and (orientation:landscape){
+  body.in-game .table{grid-template-columns:132px minmax(0,1fr) 132px;gap:2px 6px;border-width:6px;
+    padding:max(6px,env(safe-area-inset-top)) max(8px,env(safe-area-inset-right)) max(4px,env(safe-area-inset-bottom)) max(8px,env(safe-area-inset-left))}
+  body.in-game .seat{padding:2px 4px;gap:3px}
+  body.in-game .slot-left{padding-top:46px}
+  body.in-game .seat-info{font-size:11px;gap:5px}
+  body.in-game .wind-badge{width:22px;height:22px;font-size:13px}
+  body.in-game .who small{font-size:10px}
+  body.in-game .pts{padding:1px 6px}
+  body.in-game .seat-row{gap:6px}
+  /* lawan: punggung kartu & buangan kecil */
+  body.in-game .seat:not(.slot-me) .seat-hand .tile{font-size:7px}
+  body.in-game .seat:not(.slot-me) .seat-hand .tile.slat{font-size:8px}
+  body.in-game .seat-discards .tile{font-size:8px}
+  body.in-game .seat:not(.slot-me) .meld .tile{font-size:8px}
+  body.in-game .slot-top .seat-discards{max-width:none}
+  /* tengah meja ringkas */
+  body.in-game .center{padding:6px 10px;gap:4px;width:min(100%,300px)}
+  body.in-game .c-wind{width:30px;height:30px;font-size:17px}
+  body.in-game .c-round small{font-size:10px}
+  body.in-game .c-wall{font-size:11px}
+  body.in-game .c-wall b{font-size:14px}
+  body.in-game .c-dice{display:none}
+  body.in-game .c-msg{font-size:11px;min-height:0}
+  /* bagianmu */
+  body.in-game .me-wrap{gap:2px}
+  body.in-game .action-bar{min-height:0;padding:2px 6px;gap:3px}
+  body.in-game .ab-msg{font-size:12px}
+  body.in-game .ab-hint{font-size:11px;padding:3px 10px}
+  body.in-game .ab-btns .btn{padding:6px 12px;font-size:13px}
+  body.in-game .slot-me{padding:2px 4px 0}
+  body.in-game .slot-me .seat-hand .tile{font-size:16px}
+  body.in-game .slot-me .seat-hand .tile.sel{transform:translateY(-.4em)}
+  body.in-game .slot-me .meld .tile{font-size:11px}
+  body.in-game .slot-me .seat-discards{max-width:none}
+}
+/* lebih pendek lagi (HP kecil landscape) */
+@media (min-width:640px) and (max-height:430px) and (orientation:landscape){
+  body.in-game .slot-me .seat-hand .tile{font-size:14px}
+  body.in-game .slot-me .seat-info{display:none}
+  body.in-game .seat:not(.slot-me) .seat-hand .tile.slat{font-size:6.5px}
+  body.in-game .slot-left{padding-top:42px}
+  body.in-game .table{grid-template-columns:118px minmax(0,1fr) 118px}
+  body.in-game .c-round small{display:none}
+}

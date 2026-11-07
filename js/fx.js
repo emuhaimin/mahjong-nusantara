@@ -13,7 +13,7 @@ const FX = (() => {
     el.innerHTML = `<b>${esc(text.replace('!', ''))}</b><small>${esc(who)}</small>`;
     // di desktop: di antara kursi pemain dan tengah meja; di HP: tengah layar
     let x = innerWidth / 2, y = innerHeight / 2;
-    if (anchor && innerWidth > 820) {
+    if (anchor && !matchMedia('(max-width:820px) and (orientation:portrait), (max-width:639px)').matches) {
       const r = anchor.getBoundingClientRect();
       if (r.width && r.bottom > 0 && r.top < innerHeight) {
         x = (r.left + r.width / 2 + innerWidth / 2) / 2;
