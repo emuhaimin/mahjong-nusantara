@@ -598,3 +598,10 @@ button,.btn,a,select,input,label{touch-action:manipulation}
   .dr-row{flex-direction:column;align-items:stretch;gap:8px}
 }
 @keyframes sheetUp{from{transform:translateY(40px);opacity:.4}}
+
+/* ---------- TOMBOL WHATSAPP ---------- */
+.btn.wa{background:#1fa855;color:#fff;gap:10px}
+.btn.wa:hover{filter:brightness(1.06)}
+.btn.wa svg{flex:none}
+#on-wa{width:100%;margin:6px 0 10px;min-height:56px;font-size:17px;box-shadow:0 8px 22px rgba(31,168,85,.3)}
+.drawer .btn.wa{justify-content:flex-start}

@@ -7,7 +7,7 @@ const Online = (() => {
   const POS = ['bottom', 'right', 'top', 'left'];
   const LS = 'mjn-online';
   let ws = null, S = null, everOpen = false, retry = null, sel = null, deadlineAt = 0, totalMs = 0;
-  let lastCallout = null;
+  let lastCallout = null, invitedTo = null;
   let active = false, seenChat = -1, logOpen = false, modalKey = '';
 
   const load = () => { try { return JSON.parse(localStorage.getItem(LS)) || {}; } catch { return {}; } };
@@ -33,7 +33,7 @@ const Online = (() => {
       everOpen = true; $('#on-noserver').hidden = true;
       const o = load();
       if (o.code) send({ t: 'join', code: o.code, name: o.name || myName(), token: token() });
-      else status('');
+      else if (!invitedTo) status('');
     };
     ws.onmessage = e => { let m; try { m = JSON.parse(e.data); } catch { return; } onMsg(m); };
     ws.onclose = () => {
@@ -101,8 +101,25 @@ const Online = (() => {
     if (S.g) renderGame();
   }
 
+  /** link & pesan undangan WhatsApp */
+  const inviteLink = () => `${location.origin}${location.pathname}#online/${S.code}`;
+  function inviteText() {
+    const me = S.seats[S.you] ? S.seats[S.you].name : '';
+    const free = S.seats.filter(s => !s || !s.human).length;
+    const lenTxt = { one: '1 hand', east: '1 ronde angin', full: '4 ronde angin' }[S.opts.length];
+    return `🀄 *Ayo main Mahjong bareng${me ? ' ' + me : ''}!*\n\n` +
+      `Kode room: *${S.code}*\n` +
+      `Aturan: minimal ${S.opts.minFan} fan · ${lenTxt}` + (free ? (S.phase === 'lobby' ? ` · ${free} kursi masih kosong` : ` · ${free} kursi bot bisa kamu gantikan`) : '') + `\n\n` +
+      (S.phase === 'lobby' ? '' : `Permainan sudah berjalan — kamu akan menggantikan salah satu bot.\n\n`) +
+      `Ketuk link ini untuk langsung gabung:\n${inviteLink()}`;
+  }
+  function setInvite() {
+    const href = 'https://wa.me/?text=' + encodeURIComponent(inviteText());
+    ['#on-wa', '#on-wa2'].forEach(q => { const a = $(q); if (a) a.href = href; });
+  }
   function renderRoom() {
-    const link = `${location.href.split('#')[0]}#online/${S.code}`;
+    const link = inviteLink();
+    setInvite();
     $('#on-roomcode').textContent = S.code;
     $('#on-link').value = link;
     $('#on-shareb').hidden = !navigator.share;
@@ -133,6 +150,7 @@ const Online = (() => {
       <div class="c-msg">${g.msg || ''}</div>${g.paused ? '<div class="paused">Dijeda — tidak ada pemain terhubung.</div>' : ''}`;
     renderActions();
     renderChat();
+    setInvite();
     if (g.callout && g.callout.id !== lastCallout) {
       const fresh = lastCallout !== null || Date.now() - g.callout.id < 2500;
       lastCallout = g.callout.id;
@@ -298,7 +316,7 @@ const Online = (() => {
   }
   function join(code) {
     code = (code || $('#on-code').value).trim().toUpperCase();
-    leftCode = null;
+    leftCode = null; invitedTo = null;
     if (!/^[A-Z]{4}$/.test(code)) return status('Kode room harus 4 huruf.', true);
     const name = myName();
     save({ name, code });
@@ -322,7 +340,8 @@ const Online = (() => {
       catch { $('#on-link').select(); document.execCommand && document.execCommand('copy'); $('#on-copy').textContent = 'Tersalin ✓'; }
       setTimeout(() => { $('#on-copy').textContent = 'Salin link'; }, 1600);
     };
-    $('#on-shareb').onclick = () => navigator.share && navigator.share({ title: 'Main Mahjong bareng', text: `Gabung room mahjong ${S.code}`, url: $('#on-link').value }).catch(() => { });
+    $('#on-shareb').onclick = () => navigator.share && navigator.share({ title: 'Main Mahjong bareng', text: inviteText().replace(/\*/g, '').replace(/\n[^\n]*$/, ''), url: inviteLink() }).catch(() => { });
+    ['#on-wa', '#on-wa2'].forEach(q => $(q).addEventListener('click', () => { if (S) setInvite(); }));
     $('#on-r-minfan').onchange = $('#on-r-length').onchange = () => send({ t: 'opts', opts: { minFan: +$('#on-r-minfan').value, length: $('#on-r-length').value } });
     $('#on-hint').onchange = () => S && S.g && renderGame();
     document.querySelector('[data-drawer="on-drawer"]').addEventListener('click', () => setTimeout(() => {
@@ -385,7 +404,11 @@ const Online = (() => {
       if (o.code !== code) {
         if (code === leftCode) status(`Kamu sudah keluar dari room ${code}. Tekan Gabung jika ingin masuk lagi.`);
         else if (o.name || $('#on-name').value.trim()) join(code);
-        else status(`Isi nama kamu lalu tekan Gabung untuk masuk ke room ${code}.`);
+        else {
+          invitedTo = code;
+          status(`👋 Kamu diundang ke room ${code}. Isi nama kamu, lalu tekan Gabung.`);
+          setTimeout(() => { const n = $('#on-name'); n.scrollIntoView({ block: 'center' }); n.focus(); }, 300);
+        }
       }
     }
     render();
