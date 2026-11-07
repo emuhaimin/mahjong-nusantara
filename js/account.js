@@ -173,6 +173,7 @@ const Account = (() => {
     win: ['Menang', 'ok'], zimo: ['Menang Zimo', 'ok'], dealin: ['Kena tembak', 'bad'],
     lose: ['Lawan Zimo', 'mid'], other: ['Lawan menang', 'mid'], draw: ['Seri', 'mid'],
   };
+  const LV_NAME = { easy: 'Easy', medium: 'Medium', hard: 'Hard', expert: 'Expert', mix: 'Campuran' };
   const fmtDate = t => new Date(t).toLocaleString('id-ID', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
   const tile = (k, cls = 'xs') => (k == null ? '' : tileHTML(k, { cls }));
   const pctTxt = v => (v == null ? '–' : v + '%');
@@ -197,7 +198,7 @@ const Account = (() => {
     const d = r.d || {};
     return `<details class="pf-sess"><summary>
         <span class="pf-rank r${r.rank || 0}">${r.rank ? '#' + r.rank : '–'}</span>
-        <span class="pf-sum"><b>${r.mode === 'online' ? '🌐 Online' : '🀄 vs Mesin'}</b> · ${r.hands.length} hand · ${wins} menang${r.complete ? '' : ' · <i>belum selesai</i>'}<small>${fmtDate(r.startedAt)} · min ${r.minFan} fan · ${lenTxt}</small></span>
+        <span class="pf-sum"><b>${r.mode === 'online' ? '🌐 Online' : '🀄 vs Mesin'}</b>${r.level ? ` <span class="lv-tag lv-${esc(r.level)}">${esc(LV_NAME[r.level] || r.level)}</span>` : ''} · ${r.hands.length} hand · ${wins} menang${r.complete ? '' : ' · <i>belum selesai</i>'}<small>${fmtDate(r.startedAt)} · min ${r.minFan} fan · ${lenTxt}</small></span>
         <span class="pf-delta ${delta > 0 ? 'plus' : delta < 0 ? 'minus' : ''}">${delta > 0 ? '+' : ''}${delta}</span></summary>
       <div class="pf-sess-body">
         <table class="fan-table"><thead><tr><th>#</th><th>Hasil</th><th>Fan</th><th>Skor</th></tr></thead><tbody>${hands}</tbody></table>

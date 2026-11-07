@@ -60,6 +60,21 @@
     $('#cfg-show').parentElement.hidden = watch;
   }
   $('#cfg-mode').addEventListener('change', e => setupMode(e.target.value));
+
+  /* ---------- tingkat AI (diingat di perangkat ini) ---------- */
+  const LV_KEY = 'mjn-level';
+  const LV_DESC = {
+    easy: 'Bot sering membuang asal dan asal klaim Pong/Chow. Cocok untuk yang baru belajar.',
+    medium: 'Bot mengejar Ting dengan benar, tapi kadang keliru dan jarang mengejar Flush.',
+    hard: 'Bot menghitung peluang kartu yang tersisa, menjaga kartu bernilai, dan mengejar Flush.',
+    expert: 'Seperti Hard, plus selalu mengejar fan besar, membaca meld lawan, dan bertahan (buang kartu aman) saat lawan hampir Hu.',
+    mix: 'Tiap bot punya tingkat berbeda — lihat label di bawah nama bot. Simulasi: Easy, Medium, Hard, Expert.',
+  };
+  const lvSel = $('#cfg-level');
+  try { const v = localStorage.getItem(LV_KEY); if (v && LV_DESC[v]) lvSel.value = v; } catch { }
+  const lvDesc = () => { $('#cfg-level-desc').textContent = LV_DESC[lvSel.value] || ''; };
+  lvSel.addEventListener('change', () => { lvDesc(); try { localStorage.setItem(LV_KEY, lvSel.value); } catch { } });
+  lvDesc();
   $('#cfg-start').addEventListener('click', () => {
     const m = $('#cfg-mode').value;
     Game.start({
@@ -70,6 +85,7 @@
       speed: m === 'watch' && $('#cfg-speed').value === 'normal' ? 'normal' : $('#cfg-speed').value,
       hint: $('#cfg-hint').checked,
       showHands: $('#cfg-show').checked,
+      level: lvSel.value,
     });
     if (m === 'watch') $('#log').hidden = false;
   });

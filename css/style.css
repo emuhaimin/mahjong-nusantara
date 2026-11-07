@@ -691,3 +691,12 @@ body.in-game .net-banner{display:none!important}
 :root[data-theme="dark"] .offline-state.ok{color:#5fd39f}
 html.is-offline [data-needs-net]{opacity:.55}
 html.is-offline [data-needs-net] h3::after{content:" · butuh internet";font-size:12px;font-weight:600;color:var(--muted)}
+
+/* ---------- tingkat AI ---------- */
+.lv-desc{display:block;margin-top:4px;font-size:12.5px;font-weight:400;color:var(--muted);line-height:1.4}
+.lv-tag{display:inline-block;padding:0 6px;border-radius:999px;font-size:10.5px;font-weight:800;letter-spacing:.02em;line-height:16px;vertical-align:1px;color:#fff;background:#6b7570}
+.lv-tag.lv-easy{background:#2f8a4e}
+.lv-tag.lv-medium{background:#b58a12}
+.lv-tag.lv-hard{background:#c4621b}
+.lv-tag.lv-expert{background:#b3262e}
+.lv-tag.lv-mix{background:#5b5fa8}
