@@ -41,55 +41,26 @@ function tileName(k) {
   return `Musim ${SEASON_ID[k - 38]}`;
 }
 
-const DOT_POS = {
-  1: [[2,2]],
-  2: [[1,2],[3,2]],
-  3: [[1,1],[2,2],[3,3]],
-  4: [[1,1],[1,3],[3,1],[3,3]],
-  5: [[1,1],[1,3],[2,2],[3,1],[3,3]],
-  6: [[1,1],[1,3],[2,1],[2,3],[3,1],[3,3]],
-  7: [[1,1],[1,2],[1,3],[2,1],[2,3],[3,1],[3,3]],
-  8: [[1,1],[1,2],[1,3],[2,1],[2,3],[3,1],[3,2],[3,3]],
-  9: [[1,1],[1,2],[1,3],[2,1],[2,2],[2,3],[3,1],[3,2],[3,3]],
-};
-const DOT_COL = {
-  1:['c3'], 2:['c1','c2'], 3:['c1','c3','c2'], 4:['c1','c2','c2','c1'], 5:['c1','c2','c3','c2','c1'],
-  6:['c2','c2','c3','c3','c3','c3'], 7:['c2','c2','c2','c3','c3','c3','c3'], 8:Array(8).fill('c1'),
-  9:['c1','c1','c1','c3','c3','c3','c2','c2','c2'],
-};
-const BAM_POS = {
-  1: [[2,2]],
-  2: [[1,2],[3,2]],
-  3: [[1,2],[3,1],[3,3]],
-  4: [[1,1],[1,3],[3,1],[3,3]],
-  5: [[1,1],[1,3],[2,2],[3,1],[3,3]],
-  6: [[1,1],[1,2],[1,3],[3,1],[3,2],[3,3]],
-  7: [[1,2],[2,1],[2,2],[2,3],[3,1],[3,2],[3,3]],
-  8: [[1,1],[1,2],[1,3],[2,1],[2,3],[3,1],[3,2],[3,3]],
-  9: DOT_POS[9],
-};
-const BAM_COL = {
-  1:['c3'], 2:['c2','c2'], 3:['c2','c2','c2'], 4:['c2','c1','c1','c2'], 5:['c2','c2','c3','c2','c2'],
-  6:['c2','c2','c2','c1','c1','c1'], 7:['c3','c2','c2','c2','c2','c2','c2'], 8:['c2','c2','c2','c3','c3','c2','c2','c2'],
-  9:['c2','c3','c1','c2','c3','c1','c2','c3','c1'],
-};
+/* Gambar kartu: FluffyStuff riichi-mahjong-tiles (public domain / CC0),
+   Naga Putih berbingkai biru & Bunga/Musim dibuat untuk situs ini. */
+const TILE_BASE = 'assets/tiles/';
+const HONOR_IMG = ['Ton', 'Nan', 'Shaa', 'Pei', 'Chun', 'Hatsu', 'Haku'];
+function tileImg(k) {
+  if (k < 9) return 'Man' + (k + 1);
+  if (k < 18) return 'Pin' + (k - 8);
+  if (k < 27) return 'Sou' + (k - 17);
+  return HONOR_IMG[k - 27];
+}
 
 function tileFace(k) {
-  if (k < 9) return `<span class="tn">${NUM_CH[k]}</span><span class="ts">萬</span>`;
-  if (k < 18) {
-    const n = k - 8;
-    return `<span class="corner">${n}</span><span class="dots d${n}">${DOT_POS[n].map(([r, c], i) => `<i class="${DOT_COL[n][i]}" style="grid-area:${r}/${c}"></i>`).join('')}</span>`;
+  if (k >= 34) {
+    const i = (k - 34) % 4, fl = k < 38;
+    return `<span class="corner">${i + 1}</span><span class="big ${fl ? 'fl' : 'se'}">${fl ? FLOWER_CH[i] : SEASON_CH[i]}</span><span class="fsub">${fl ? FLOWER_ID[i] : SEASON_ID[i]}</span>`;
   }
-  if (k < 27) {
-    const n = k - 17;
-    return `<span class="corner">${n}</span><span class="bams b${n}">${BAM_POS[n].map(([r, c], i) => `<i class="${BAM_COL[n][i]}" style="grid-area:${r}/${c}"></i>`).join('')}</span>`;
-  }
-  if (k < 31) return `<span class="corner">${WIND_SHORT[k - 27]}</span><span class="big wind">${WIND_CH[k - 27]}</span>`;
-  if (k === 31) return `<span class="big red">中</span>`;
-  if (k === 32) return `<span class="big grn">發</span>`;
-  if (k === 33) return `<span class="bai"></span>`;
-  if (k < 38) return `<span class="corner">${k - 33}</span><span class="big fl">${FLOWER_CH[k - 34]}</span><span class="fsub">${FLOWER_ID[k - 34]}</span>`;
-  return `<span class="corner">${k - 37}</span><span class="big se">${SEASON_CH[k - 38]}</span><span class="fsub">${SEASON_ID[k - 38]}</span>`;
+  let h = `<img class="tf" src="${TILE_BASE}${tileImg(k)}.svg" alt="" draggable="false">`;
+  if (k < 9) h += `<span class="corner">${k + 1}</span>`;                 // bantu baca angka Tionghoa
+  else if (k >= 27 && k < 31) h += `<span class="corner">${WIND_SHORT[k - 27]}</span>`;
+  return h;
 }
 
 function tileHTML(k, opt = {}) {

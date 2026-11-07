@@ -78,6 +78,8 @@ Catatan: room disimpan di memori, jadi restart layanan menghentikan permainan ya
 - `js/learn.js` — modul belajar 17 langkah
 - `server/server.js` — server statis + WebSocket
 - `server/engine.js` — mesin permainan otoritatif per room
+- `assets/tiles/` — gambar kartu (SVG)
+- `tools/minify_svg.py` — pengecil SVG
 - `deploy/` — skrip upload, instalasi VPS, systemd, nginx, dan template HestiaCP
 
 ## Aturan online
@@ -87,3 +89,7 @@ Catatan: room disimpan di memori, jadi restart layanan menghentikan permainan ya
 - Batas waktu: 30 dtk per giliran, 12 dtk untuk klaim. Kalau habis, langkah dipilih otomatis.
 - Pemain yang terputus sementara dimainkan bot dan kembali ke kursinya saat tersambung lagi.
 - Room yang kosong dihapus setelah 15 menit.
+
+## Kredit
+
+Gambar kartu dari [FluffyStuff/riichi-mahjong-tiles](https://github.com/FluffyStuff/riichi-mahjong-tiles) (public domain, CC0), dikecilkan dengan `tools/minify_svg.py`. Naga Putih berbingkai biru serta kartu Bunga & Musim dibuat khusus untuk situs ini.

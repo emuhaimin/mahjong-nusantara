@@ -15,7 +15,7 @@ SSH_OPTS="${SSH_OPTS:-}"
 cd "$(dirname "$0")/.."
 
 echo "▶ Mengunggah ke $TARGET (domain: $DOMAIN)…"
-COPYFILE_DISABLE=1 tar czf - index.html css js server package.json deploy | \
+COPYFILE_DISABLE=1 tar czf - index.html css js assets server package.json deploy | \
   ssh $SSH_OPTS "$TARGET" "rm -rf /tmp/mahjong-src && mkdir -p /tmp/mahjong-src && tar xzf - -C /tmp/mahjong-src && \
     if [ \"\$(id -u)\" = 0 ]; then SUDO=; else SUDO=sudo; fi; \
     \$SUDO env DOMAIN='$DOMAIN' EMAIL='$EMAIL' PORT='$PORT' bash /tmp/mahjong-src/deploy/install.sh"

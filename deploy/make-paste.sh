@@ -12,8 +12,8 @@ OUT=deploy-paste
 rm -rf "$OUT"; mkdir -p "$OUT"
 
 TMP="$(mktemp -d)"
-COPYFILE_DISABLE=1 tar --no-xattrs --no-mac-metadata -czf "$TMP/app.tgz" index.html css js server package.json deploy 2>/dev/null \
-  || COPYFILE_DISABLE=1 tar -czf "$TMP/app.tgz" index.html css js server package.json deploy
+COPYFILE_DISABLE=1 tar --no-xattrs --no-mac-metadata -czf "$TMP/app.tgz" index.html css js assets server package.json deploy 2>/dev/null \
+  || COPYFILE_DISABLE=1 tar -czf "$TMP/app.tgz" index.html css js assets server package.json deploy
 base64 < "$TMP/app.tgz" | fold -w 76 > "$TMP/app.b64"
 SUM="$(shasum -a 256 "$TMP/app.b64" | awk '{print $1}')"
 split -l "$LINES_PER_PART" "$TMP/app.b64" "$TMP/chunk-"

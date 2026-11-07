@@ -7,6 +7,7 @@ const path = require('path');
 const os = require('os');
 const crypto = require('crypto');
 const { EventEmitter } = require('events');
+const zlib = require('zlib');
 const { Room } = require('./engine');
 
 const PORT = +process.env.PORT || 3000;
@@ -19,7 +20,7 @@ const MIME = {
   '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8',
   '.json': 'application/json', '.png': 'image/png', '.svg': 'image/svg+xml', '.ico': 'image/x-icon', '.webp': 'image/webp',
 };
-const PUBLIC = new Set(['index.html', 'css', 'js']); // hanya folder ini yang disajikan
+const PUBLIC = new Set(['index.html', 'css', 'js', 'assets']); // hanya folder ini yang disajikan
 const LIMITS = {
   maxRooms: +process.env.MAX_ROOMS || 300,       // room aktif maksimal
   maxConnPerIp: +process.env.MAX_CONN_PER_IP || 12,
@@ -36,6 +37,37 @@ const clientIp = req => String(req.headers['x-forwarded-for'] || '').split(',')[
 const connPerIp = new Map();
 
 /* ---------------- HTTP statis ---------------- */
+const fileCache = new Map(); // path → {mtime, raw, gz, etag}
+const COMPRESS = new Set(['.html', '.js', '.css', '.svg', '.json']);
+function serveFile(req, res, file) {
+  fs.stat(file, (err, st) => {
+    if (err || !st.isFile()) { res.writeHead(404); return res.end('Not found'); }
+    let c = fileCache.get(file);
+    if (!c || c.mtime !== st.mtimeMs) {
+      let raw;
+      try { raw = fs.readFileSync(file); } catch { res.writeHead(404); return res.end('Not found'); }
+      const ext = path.extname(file);
+      c = { mtime: st.mtimeMs, raw, gz: COMPRESS.has(ext) ? zlib.gzipSync(raw, { level: 9 }) : null, etag: '"' + crypto.createHash('sha1').update(raw).digest('base64').slice(0, 16) + '"' };
+      fileCache.set(file, c);
+    }
+    const ext = path.extname(file);
+    const headers = {
+      ...SECURITY_HEADERS,
+      'content-type': MIME[ext] || 'application/octet-stream',
+      // gambar kartu jarang berubah → cache 7 hari; kode → selalu cek versi terbaru (ETag)
+      'cache-control': file.includes(path.sep + 'assets' + path.sep) ? 'public, max-age=604800' : 'no-cache',
+      etag: c.etag, vary: 'Accept-Encoding',
+    };
+    if (req.headers['if-none-match'] === c.etag) { res.writeHead(304, headers); return res.end(); }
+    const useGz = c.gz && /\bgzip\b/.test(req.headers['accept-encoding'] || '');
+    if (useGz) headers['content-encoding'] = 'gzip';
+    const body = useGz ? c.gz : c.raw;
+    headers['content-length'] = body.length;
+    res.writeHead(200, headers);
+    res.end(req.method === 'HEAD' ? undefined : body);
+  });
+}
+
 const server = http.createServer((req, res) => {
   let url;
   try { url = decodeURIComponent(new URL(req.url, 'http://x').pathname); } catch { res.writeHead(400); return res.end(); }
@@ -47,11 +79,7 @@ const server = http.createServer((req, res) => {
   const file = path.resolve(ROOT, '.' + url);
   const top = path.relative(ROOT, file).split(path.sep)[0];
   if (!file.startsWith(ROOT + path.sep) || !PUBLIC.has(top)) { res.writeHead(404); return res.end('Not found'); }
-  fs.readFile(file, (err, data) => {
-    if (err) { res.writeHead(404); return res.end('Not found'); }
-    res.writeHead(200, { ...SECURITY_HEADERS, 'content-type': MIME[path.extname(file)] || 'application/octet-stream', 'cache-control': 'no-cache' });
-    res.end(data);
-  });
+  serveFile(req, res, file);
 });
 
 /* ---------------- WebSocket minimal (RFC 6455) ---------------- */

@@ -48,8 +48,8 @@ fi
 say "Menyalin aplikasi ke $APP_DIR"
 id mahjong >/dev/null 2>&1 || useradd --system --no-create-home --shell /usr/sbin/nologin mahjong
 mkdir -p "$APP_DIR"
-rm -rf "$APP_DIR/css" "$APP_DIR/js" "$APP_DIR/server"
-cp -r "$SRC/index.html" "$SRC/css" "$SRC/js" "$SRC/server" "$SRC/package.json" "$APP_DIR/"
+rm -rf "$APP_DIR/css" "$APP_DIR/js" "$APP_DIR/server" "$APP_DIR/assets"
+cp -r "$SRC/index.html" "$SRC/css" "$SRC/js" "$SRC/assets" "$SRC/server" "$SRC/package.json" "$APP_DIR/"
 chown -R root:root "$APP_DIR"
 chmod -R a+rX,go-w "$APP_DIR"
 
