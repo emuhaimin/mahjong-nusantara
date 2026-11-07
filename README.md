@@ -14,6 +14,23 @@ Buka `http://localhost:3000`. Teman di Wi-Fi yang sama bisa membuka alamat `http
 
 Mode offline (Belajar, Main vs Mesin, Simulasi Bot) juga jalan dengan membuka `index.html` langsung — hanya mode Online yang butuh server.
 
+## Tingkat pemain & badge (Profil, perlu login)
+
+Jenjang terinspirasi sistem peringkat platform mahjong daring (Mahjong Soul: Novice → Celestial, Tenhou: kyu/dan):
+
+| Tier | | RP minimal | Sub-tingkat |
+|---|---|---|---|
+| 新手 | Pemula | 0 | I · II · III (0 / 20 / 50) |
+| 雀士 | Pemain | 100 | I · II · III (100 / 160 / 230) |
+| 雀傑 | Jagoan | 320 | I · II · III (320 / 430 / 560) |
+| 雀豪 | Pendekar | 720 | I · II · III (720 / 900 / 1100) |
+| 雀聖 | Suhu | 1350 | I · II · III (1350 / 1650 / 2000) |
+| 雀神 | Dewa Mahjong | 2500 | tanpa batas |
+
+RP didapat dari posisi akhir sesi lengkap (juara 1 +40, ke-2 +15, ke-3 0, ke-4 −15 mulai tier Jagoan) dan tiap hand menang (+2, ditambah setengah fan). Semua dikali tingkat lawan (Easy ×0,4 · Medium ×0,8 · Hard ×1 · Expert ×1,3 · Online ×1,2), dan poin posisi dikali panjang permainan (1 hand ×0,25 · 1 ronde ×1 · 4 ronde ×2). Tier yang sudah dicapai tidak bisa turun. Profil juga menampilkan peringkat global di antara semua pemain.
+
+Ada 26 badge (perunggu/perak/emas/giok): perjalanan (sesi pertama, 10 & 50 sesi), kemenangan (Hu & Zimo pertama, 10 & 100 menang, juara meja, Penakluk Expert, Juara Online), pola (Semua Chow/Pong, Satu Warna, Tujuh Pasang, Tiga Naga, Empat Angin, Tiga Belas Yatim, 13 fan, bunga, kartu terakhir, menang dari Kong), dan keterampilan (Ting Kilat, Tembok Baja, Maraton). Semuanya dihitung ulang dari seluruh riwayat sesi, jadi permainan lama ikut terhitung. Logika ada di `js/progress.js` (dipakai server & browser).
+
 ## Bunga & Musim
 
 Delapan kartu bonus (梅蘭菊竹 bunga, 春夏秋冬 musim) ikut dikocok. Seperti di meja nyata, bunga yang didapat langsung **dibuka di depan pemain** (di samping Pong/Chow terbuka), lalu pemain mengambil kartu pengganti dari ujung belakang tembok. Saat pembagian awal, bunga diganti mulai dari dealer dan diringkas di tengah meja. Bunga yang terambil di tengah permainan diumumkan dengan notifikasi **BUNGA!**. Bunga bernomor sama dengan kursi (Timur=1 … Utara=4) diberi lingkar emas karena bernilai +1 fan (Bunga Kursi Sendiri). Set lengkap = +2 fan, tanpa bunga sama sekali = +1 fan.

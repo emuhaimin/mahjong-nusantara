@@ -25,6 +25,7 @@ Catatan:
 - `js/tiles.js`, `js/rules.js`: kartu, shanten, hitung fan (dipakai juga oleh server).
 - `js/ai.js`: bot AI 4 tingkat (easy/medium/hard/expert), dipakai `js/game.js` (offline) **dan** `server/engine.js` (Online).
 - `js/game.js`: Main vs Mesin & Simulasi. `js/online.js`: klien Online. `js/learn.js`: pelajaran.
+- `js/progress.js`: tingkat pemain (Pemula → Dewa Mahjong, RP) & 26 badge, dihitung server (`/api/stats` → `progress`) dan ditampilkan di Profil.
 - `js/account.js` + `server/auth.js`, `server/stats.js`, `server/store.js`: login Google, rekaman sesi, statistik.
 - `sw.js`: service worker / mode offline. Setiap menambah file JS/CSS/aset baru, **masukkan ke daftar `CORE`**. `deploy/install.sh` menaikkan `VERSION` otomatis saat deploy.
 - `server/server.js`: HTTP + WebSocket, tanpa dependensi npm (Node 18+).

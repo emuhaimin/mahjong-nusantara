@@ -209,6 +209,65 @@ const Account = (() => {
   function tileStat(label, value, sub) {
     return `<div class="pf-tile"><span>${label}</span><b>${value}</b>${sub ? `<small>${sub}</small>` : ''}</div>`;
   }
+  /* ---------- tingkat & badge (js/progress.js) ---------- */
+  const RARITY = { bronze: ['#b8733a', 'Perunggu'], silver: ['#9aa5ad', 'Perak'], gold: ['#d4a531', 'Emas'], jade: ['#1f9e6e', 'Giok'] };
+  /** medali orisinal: cincin berwarna + kartu mahjong krem berhuruf di tengah */
+  function medalSVG(ch, color, cls = '') {
+    return `<svg class="medal ${cls}" viewBox="0 0 100 100" aria-hidden="true">
+      <circle cx="50" cy="50" r="48" fill="${color}"/>
+      <path d="M12 42 A39 39 0 0 1 88 42" fill="none" stroke="#fff" stroke-opacity=".35" stroke-width="5" stroke-linecap="round"/>
+      <circle cx="50" cy="50" r="40" fill="none" stroke="#fff" stroke-opacity=".55" stroke-width="1.6" stroke-dasharray="2.5 3.5"/>
+      <circle cx="50" cy="50" r="35" fill="#0f3d2c"/>
+      <rect x="32" y="24" width="36" height="50" rx="7" fill="#c9b98f"/>
+      <rect x="32" y="21" width="36" height="50" rx="7" fill="#fffaf0" stroke="${color}" stroke-width="2.2"/>
+      <text x="50" y="57" text-anchor="middle" font-size="27" font-weight="700" fill="#b3262e" style="font-family:var(--cjk)">${esc(ch)}</text>
+    </svg>`;
+  }
+  function rankCardHTML(pg) {
+    if (!pg || typeof MJN_TIERS === 'undefined') return '';
+    const r = pg.rank, t = MJN_TIERS[r.tierIndex];
+    const left = r.next == null ? null : r.next - r.rp;
+    const st = pg.standing;
+    return `<section class="card pf-level" style="--tier:${t.color}">
+        ${medalSVG(t.ch, t.color, 'big')}
+        <div class="pf-level-body">
+          <p class="eyebrow">Tingkat pemain</p>
+          <h3><span class="zh">${t.zh}</span> ${esc(r.label)}</h3>
+          <div class="pf-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${r.pct}"><span style="width:${r.pct}%"></span></div>
+          <small>${r.rp} RP${left != null ? ` · <b>${left}</b> RP lagi menuju ${esc(r.nextName)}` : ' · puncak tertinggi!'}</small>
+          ${st ? `<p class="pf-standing">🏅 Peringkat <b>#${st.pos}</b> dari ${st.total} pemain</p>` : ''}
+        </div>
+        <details class="pf-howto"><summary>Cara naik tingkat</summary>
+          <ul class="pf-tierlist">${MJN_TIERS.map((x, i) => `<li class="${i === r.tierIndex ? 'cur' : ''}">${medalSVG(x.ch, x.color, 'xs')}<span><b>${x.name}</b> <span class="zh muted">${x.zh}</span><small>${x.subs.length > 1 ? `${x.subs[0]}–${(MJN_TIERS[i + 1] ? MJN_TIERS[i + 1].subs[0] : '∞')} RP · ${x.subs.length} sub-tingkat` : `${x.subs[0]}+ RP`} — ${esc(x.desc)}</small></span></li>`).join('')}</ul>
+          <p class="muted">RP didapat dari <b>posisi akhir sesi lengkap</b> (juara 1 +40, ke-2 +15, ke-3 0, ke-4 −15 mulai tier Jagoan) dan <b>tiap hand menang</b> (+2, ditambah setengah fan). Semua dikali tingkat lawan (Easy ×0,4 · Medium ×0,8 · Hard ×1 · Expert ×1,3 · Online ×1,2), dan poin posisi juga dikali panjang permainan (1 hand ×0,25 · 4 ronde ×2). Tier yang sudah dicapai tidak bisa turun.</p>
+        </details>
+      </section>`;
+  }
+  function badgesHTML(pg) {
+    if (!pg || typeof MJN_BADGES === 'undefined') return '';
+    const got = pg.badges.filter(b => b.earned).length;
+    const byId = Object.fromEntries(pg.badges.map(b => [b.id, b]));
+    return `<section class="card pf-badges"><h3>🏅 Badge <small class="muted">${got} dari ${MJN_BADGES.length}</small></h3>
+        <p class="muted">Didapat dari Main vs Mesin &amp; Online saat login. Ketuk badge untuk melihat syaratnya.</p>
+        <div class="badge-grid">${MJN_BADGES.map(d => {
+          const b = byId[d.id] || { have: 0, need: d.need, earned: false };
+          return `<button type="button" class="badge${b.earned ? ' earned' : ''} r-${d.rarity}" data-badge="${d.id}" title="${esc(d.name)}">${medalSVG(d.ch, RARITY[d.rarity][0], b.earned ? '' : 'locked')}<span>${esc(d.name)}</span>${!b.earned && b.need > 1 ? `<em>${b.have}/${b.need}</em>` : ''}</button>`;
+        }).join('')}</div>
+        <div class="badge-info" id="pf-badge-info" hidden></div>
+      </section>`;
+  }
+  function bindBadges(pg) {
+    const box = $('#pf-badge-info');
+    if (!box) return;
+    document.querySelectorAll('.badge[data-badge]').forEach(btn => btn.addEventListener('click', () => {
+      const d = MJN_BADGES.find(x => x.id === btn.dataset.badge), b = pg.badges.find(x => x.id === d.id) || {};
+      document.querySelectorAll('.badge.sel').forEach(x => x.classList.remove('sel'));
+      btn.classList.add('sel');
+      box.hidden = false;
+      box.innerHTML = `${medalSVG(d.ch, RARITY[d.rarity][0], b.earned ? '' : 'locked')}<div><b>${esc(d.name)}</b> <small class="muted">· ${RARITY[d.rarity][1]}</small><p>${esc(d.desc)}</p><small>${b.earned ? '✅ Sudah didapat' : `🔒 Belum — progres ${b.have || 0}/${d.need}`}</small></div>`;
+    }));
+  }
+
   async function renderProfile() {
     const el = $('#profile');
     if (!el) return;
@@ -227,7 +286,8 @@ const Account = (() => {
           <ul class="pf-benefits"><li>📊 Statistik: berapa kali menang, kena tembak, rata-rata fan, peringkat</li>
             <li>🧠 Evaluasi setiap keputusan: buangan, klaim, Hu yang terlewat</li>
             <li>💡 Saran perbaikan yang disesuaikan dengan gaya bermainmu</li>
-            <li>🗂️ Riwayat setiap sesi Main vs Mesin &amp; Online</li></ul>
+            <li>🗂️ Riwayat setiap sesi Main vs Mesin &amp; Online</li>
+            <li>🏅 Tingkat pemain (Pemula → Dewa Mahjong), peringkat global, dan 26 badge pencapaian</li></ul>
           <div id="g-btn" class="g-btn"></div>
           <p class="muted pf-note">Kami hanya menyimpan nama, email, dan foto profil Google-mu serta data permainan. Tanpa login pun kamu tetap bisa bermain. <a href="privacy.html" target="_blank" rel="noopener">Kebijakan privasi</a></p>
         </div>`;
@@ -251,6 +311,7 @@ const Account = (() => {
         <div class="pf-alias"><span>Nama di meja: <b>${esc(display())}</b>${user.alias ? '' : ' <em>(belum memilih alias)</em>'}</span>
           <button class="btn jade sm" id="pf-alias">${user.alias ? 'Ubah alias' : 'Pilih alias'}</button></div>
       </div>
+      ${rankCardHTML(data.progress)}
       ${s.hands ? `<div class="pf-tiles">
         ${tileStat('Sesi', s.sessions, `${s.byMode.bot || 0} vs Mesin · ${s.byMode.online || 0} Online`)}
         ${tileStat('Hand', s.hands, `${s.wins} menang · ${s.draws} seri`)}
@@ -265,6 +326,7 @@ const Account = (() => {
         <span>Menang ${t.recent.winRate}% ${arrow(t.recent.winRate, t.before.winRate, true)} <small>(${t.before.winRate}%)</small></span>
         <span>Kena tembak ${t.recent.dealInRate}% ${arrow(t.recent.dealInRate, t.before.dealInRate, false)} <small>(${t.before.dealInRate}%)</small></span>
         <span>Buangan kurang tepat ${t.recent.worseRate}% ${arrow(t.recent.worseRate, t.before.worseRate, false)} <small>(${t.before.worseRate}%)</small></span></div>` : ''}
+      ${badgesHTML(data.progress)}
       <section class="card"><h3>💡 Evaluasi &amp; saran perbaikan</h3>
         ${data.tips.length ? `<ul class="pf-tips">${data.tips.map(x => `<li class="${x.level}"><b>${esc(x.title)}</b><p>${esc(x.text)}</p>${x.tiles && x.tiles.length ? `<div class="pf-tip-tiles">${x.tiles.map(k => tile(k, 'sm')).join('')}</div>` : ''}</li>`).join('')}</ul>` : '<p class="muted">Mainkan beberapa sesi untuk mendapatkan saran.</p>'}
       </section>
@@ -277,6 +339,7 @@ const Account = (() => {
     $('#pf-logout').onclick = logout;
     $('#pf-alias').onclick = () => askAlias(false);
     $('#pf-delete').onclick = deleteAccount;
+    bindBadges(data.progress);
   }
   return { init, isLoggedIn, submit, renderProfile, user: () => user, displayName: display };
 })();
