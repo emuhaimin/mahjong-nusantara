@@ -70,6 +70,23 @@ Pilihan lain: `PORT=3200` jika port 3100 sudah dipakai, `DOMAIN=...` untuk subdo
 
 Catatan: room disimpan di memori, jadi restart layanan menghentikan permainan yang sedang berjalan.
 
+## Akun & riwayat (login Google)
+
+- Login memakai **Sign in with Google**: server memverifikasi ID token (tanda tangan Google, audience = Client ID). Tidak ada password yang disimpan.
+- Sesi login: cookie `mjn_sess` (HttpOnly, SameSite=Lax, Secure di HTTPS), 30 hari. Token disimpan di server dalam bentuk hash.
+- Data disimpan di `DATA_DIR` (default `./data`; di VPS otomatis `/var/lib/mahjong-nusantara`): `users.json`, `sessions.json`, `games/<id>.jsonl`.
+- Yang direkam per sesi (Main vs Mesin & Online, hanya jika login): hasil tiap hand, fan, skor, peringkat, dan evaluasi keputusan (buangan vs saran mesin, klaim, Hu terlewat, kena tembak).
+- Halaman **Profil**: statistik, tren, saran perbaikan, riwayat sesi, dan tombol hapus akun.
+
+**Mengaktifkan login Google**
+1. Google Cloud Console → buat proyek → *APIs & Services* → *OAuth consent screen* (External, isi nama aplikasi, email dukungan, domain `rupaone.io`, privacy policy `https://mahjong.rupaone.io/privacy.html`) → Publish.
+2. *Credentials* → *Create credentials* → *OAuth client ID* → *Web application* → *Authorized JavaScript origins*: `https://mahjong.rupaone.io` (tambahkan `http://localhost:3000` untuk uji lokal).
+3. Salin Client ID (`…apps.googleusercontent.com`), lalu di VPS:
+   `cd /root/mahjong-nusantara && git pull && GOOGLE_CLIENT_ID=xxxx.apps.googleusercontent.com bash deploy/install.sh`
+   (Client ID disimpan di `/etc/mahjong-nusantara.env`; update berikutnya cukup `bash deploy/install.sh`.)
+
+Uji lokal: `GOOGLE_CLIENT_ID=... npm start`.
+
 ## Struktur
 
 - `js/tiles.js`, `js/rules.js` — kartu, deteksi menang, fan & poin, shanten (dipakai klien **dan** server)
@@ -78,6 +95,8 @@ Catatan: room disimpan di memori, jadi restart layanan menghentikan permainan ya
 - `js/learn.js` — modul belajar 17 langkah
 - `server/server.js` — server statis + WebSocket
 - `server/engine.js` — mesin permainan otoritatif per room
+- `server/auth.js`, `server/store.js`, `server/stats.js` — login Google, penyimpanan data, statistik & saran
+- `js/record.js` — perekam sesi (dipakai browser & server) · `js/account.js` — login & halaman Profil
 - `assets/tiles/` — gambar kartu (SVG)
 - `tools/minify_svg.py` — pengecil SVG
 - `deploy/` — skrip upload, instalasi VPS, systemd, nginx, dan template HestiaCP

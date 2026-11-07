@@ -3,6 +3,6 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 OUT=mahjong-nusantara.tar.gz
-COPYFILE_DISABLE=1 tar --no-xattrs --no-mac-metadata -czf "$OUT" index.html css js assets server package.json sw.js manifest.webmanifest deploy README.md 2>/dev/null \
-  || COPYFILE_DISABLE=1 tar -czf "$OUT" index.html css js assets server package.json sw.js manifest.webmanifest deploy README.md
+COPYFILE_DISABLE=1 tar --no-xattrs --no-mac-metadata -czf "$OUT" index.html css js assets server package.json sw.js manifest.webmanifest privacy.html deploy README.md 2>/dev/null \
+  || COPYFILE_DISABLE=1 tar -czf "$OUT" index.html css js assets server package.json sw.js manifest.webmanifest privacy.html deploy README.md
 echo "Paket siap: $(pwd)/$OUT ($(wc -c < "$OUT" | tr -d ' ') byte)"

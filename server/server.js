@@ -9,6 +9,9 @@ const crypto = require('crypto');
 const { EventEmitter } = require('events');
 const zlib = require('zlib');
 const { Room } = require('./engine');
+const { Store } = require('./store');
+const { verifyGoogleIdToken } = require('./auth');
+const { summarize, sanitizeRecord } = require('./stats');
 
 const PORT = +process.env.PORT || 3000;
 const HOST = process.env.HOST || '0.0.0.0';
@@ -20,7 +23,7 @@ const MIME = {
   '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8',
   '.json': 'application/json', '.webmanifest': 'application/manifest+json', '.png': 'image/png', '.svg': 'image/svg+xml', '.ico': 'image/x-icon', '.webp': 'image/webp',
 };
-const PUBLIC = new Set(['index.html', 'css', 'js', 'assets', 'sw.js', 'manifest.webmanifest']); // hanya folder ini yang disajikan
+const PUBLIC = new Set(['index.html', 'privacy.html', 'css', 'js', 'assets', 'sw.js', 'manifest.webmanifest']); // hanya folder ini yang disajikan
 const LIMITS = {
   maxRooms: +process.env.MAX_ROOMS || 300,       // room aktif maksimal
   maxConnPerIp: +process.env.MAX_CONN_PER_IP || 12,
@@ -31,10 +34,99 @@ const SECURITY_HEADERS = {
   'x-content-type-options': 'nosniff',
   'referrer-policy': 'strict-origin-when-cross-origin',
   'x-frame-options': 'SAMEORIGIN',
-  'content-security-policy': "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' ws: wss:; frame-ancestors 'self'",
+  'content-security-policy': "default-src 'self'; script-src 'self' https://accounts.google.com/gsi/client; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://accounts.google.com/gsi/style; font-src https://fonts.gstatic.com; img-src 'self' data: https://*.googleusercontent.com; connect-src 'self' ws: wss: https://accounts.google.com/gsi/; frame-src https://accounts.google.com/gsi/; frame-ancestors 'self'",
 };
 const clientIp = req => String(req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.socket.remoteAddress || '?';
 const connPerIp = new Map();
+
+/* ---------------- akun & data pemain ---------------- */
+const CLIENT_ID = (process.env.GOOGLE_CLIENT_ID || '').trim();
+const DATA_DIR = process.env.DATA_DIR || process.env.STATE_DIRECTORY || path.join(ROOT, 'data');
+const store = new Store(DATA_DIR);
+const COOKIE = 'mjn_sess';
+const cookiePath = () => (BASE || '') + '/';
+function getCookie(req, name) {
+  for (const part of String(req.headers.cookie || '').split(';')) {
+    const i = part.indexOf('='); if (i < 0) continue;
+    if (part.slice(0, i).trim() === name) return decodeURIComponent(part.slice(i + 1).trim());
+  }
+  return null;
+}
+const isHttps = req => req.headers['x-forwarded-proto'] === 'https' || !!req.socket.encrypted;
+const setCookie = (req, val, maxAge) => `${COOKIE}=${encodeURIComponent(val)}; Path=${cookiePath()}; Max-Age=${maxAge}; HttpOnly; SameSite=Lax${isHttps(req) ? '; Secure' : ''}`;
+const publicUser = u => u && { id: u.id, name: u.name, given: u.given || u.name.split(' ')[0], email: u.email, picture: u.picture, created: u.created };
+function readJson(req, limit = 65536) {
+  return new Promise((resolve, reject) => {
+    let size = 0; const chunks = [];
+    req.on('data', c => { size += c.length; if (size > limit) { reject(new Error('too large')); req.destroy(); } else chunks.push(c); });
+    req.on('end', () => { try { resolve(JSON.parse(Buffer.concat(chunks).toString('utf8') || '{}')); } catch { reject(new Error('json')); } });
+    req.on('error', reject);
+  });
+}
+const buckets = new Map(); // batas laju sederhana: kunci → {n, reset}
+function limited(key, max, windowMs) {
+  const now = Date.now(); let b = buckets.get(key);
+  if (!b || now > b.reset) { b = { n: 0, reset: now + windowMs }; buckets.set(key, b); }
+  return ++b.n > max;
+}
+setInterval(() => { const now = Date.now(); for (const [k, b] of buckets) if (now > b.reset) buckets.delete(k); }, 600000).unref();
+
+async function handleApi(req, res, url) {
+  const send = (code, obj, extra = {}) => {
+    res.writeHead(code, { ...SECURITY_HEADERS, 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store', ...extra });
+    res.end(JSON.stringify(obj));
+  };
+  const m = req.method;
+  if (m !== 'GET') {                                     // cegah permintaan dari situs lain (CSRF)
+    const o = req.headers.origin;
+    try { if (!o || new URL(o).host !== req.headers.host) return send(403, { error: 'Asal permintaan tidak diizinkan.' }); }
+    catch { return send(403, { error: 'Asal permintaan tidak diizinkan.' }); }
+  }
+  const tok = getCookie(req, COOKIE);
+  const user = store.userBySession(tok);
+  const ip = clientIp(req);
+  try {
+    if (url === '/api/config' && m === 'GET') return send(200, { googleClientId: CLIENT_ID || null });
+    if (url === '/api/me' && m === 'GET') return send(200, { user: publicUser(user) });
+    if (url === '/api/auth/google' && m === 'POST') {
+      if (limited('auth:' + ip, 20, 600000)) return send(429, { error: 'Terlalu banyak percobaan. Coba lagi nanti.' });
+      if (!CLIENT_ID) return send(503, { error: 'Login Google belum diaktifkan di server.' });
+      const body = await readJson(req, 8192);
+      let p;
+      try { p = await verifyGoogleIdToken(body.credential, CLIENT_ID); }
+      catch (e) { console.warn('[auth] token ditolak:', e.message); return send(401, { error: 'Login Google gagal diverifikasi. Coba lagi.' }); }
+      const u = store.upsertGoogleUser(p);
+      const t = store.createSession(u.id);
+      console.log(`[auth] masuk: ${u.email}`);
+      return send(200, { user: publicUser(u) }, { 'set-cookie': setCookie(req, t, 30 * 86400) });
+    }
+    if (url === '/api/auth/logout' && m === 'POST') {
+      store.deleteSession(tok);
+      return send(200, { ok: true }, { 'set-cookie': setCookie(req, '', 0) });
+    }
+    if (!user) return send(401, { error: 'Silakan masuk dengan Google dulu.' });
+    if (url === '/api/stats' && m === 'GET') {
+      const recs = store.games(user.id, 500);
+      return send(200, { user: publicUser(user), ...summarize(recs), recent: recs.slice(-30).reverse() });
+    }
+    if (url === '/api/games' && m === 'POST') {
+      if (limited('games:' + user.id, 120, 3600000)) return send(429, { error: 'Terlalu banyak data.' });
+      const body = await readJson(req, 96 * 1024);
+      const rec = sanitizeRecord(body.record);
+      if (!rec) return send(400, { error: 'Data sesi tidak valid.' });
+      store.addGame(user.id, rec);
+      return send(200, { ok: true });
+    }
+    if (url === '/api/me' && m === 'DELETE') {
+      console.log(`[auth] akun dihapus: ${user.email}`);
+      store.deleteUser(user.id);
+      return send(200, { ok: true }, { 'set-cookie': setCookie(req, '', 0) });
+    }
+    return send(404, { error: 'Tidak ditemukan.' });
+  } catch (e) {
+    return send(e.message === 'too large' ? 413 : 400, { error: 'Permintaan tidak valid.' });
+  }
+}
 
 /* ---------------- HTTP statis ---------------- */
 const fileCache = new Map(); // path → {mtime, raw, gz, etag}
@@ -74,6 +166,7 @@ const server = http.createServer((req, res) => {
   if (BASE && url === BASE) { res.writeHead(301, { location: BASE + '/' }); return res.end(); }
   url = stripBase(url);
   if (url === '/health') { res.writeHead(200, { 'content-type': 'text/plain' }); return res.end(`ok rooms=${rooms.size}`); }
+  if (url.startsWith('/api/')) { handleApi(req, res, url); return; }
   if (req.method !== 'GET' && req.method !== 'HEAD') { res.writeHead(405); return res.end(); }
   if (url === '/') url = '/index.html';
   const file = path.resolve(ROOT, '.' + url);
@@ -142,7 +235,7 @@ server.on('upgrade', (req, socket) => {
   socket.once('close', () => { const n = (connPerIp.get(ip) || 1) - 1; n > 0 ? connPerIp.set(ip, n) : connPerIp.delete(ip); });
   const accept = crypto.createHash('sha1').update(key + '258EAFA5-E914-47DA-95CA-C5AB0DC85B11').digest('base64');
   socket.write('HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: ' + accept + '\r\n\r\n');
-  onConnection(new Conn(socket));
+  onConnection(new Conn(socket), store.userBySession(getCookie(req, COOKIE)));
 });
 
 /* ---------------- room & pesan ---------------- */
@@ -157,11 +250,11 @@ function newCode() {
 }
 const clean = (s, n) => String(s || '').replace(/[\u0000-\u001f<>]/g, '').trim().slice(0, n);
 
-function onConnection(conn) {
+function onConnection(conn, user) {
   let room = null, seat = -1;
   const hb = setInterval(() => { if (!conn.alive) return conn.close(); conn.alive = false; conn.ping(); }, 25000);
   const attach = (r, name, token) => {
-    const res = r.join(name, token, conn);
+    const res = r.join(name, token, conn, user);
     if (res.error) return conn.send({ t: 'error', msg: res.error });
     if (room && room !== r) room.leave(conn);
     room = r; seat = res.seat;
@@ -178,7 +271,7 @@ function onConnection(conn) {
     if (m.t === 'create') {
       if (!token) return;
       if (rooms.size >= LIMITS.maxRooms) return conn.send({ t: 'error', msg: 'Server sedang penuh. Coba lagi beberapa saat lagi.' });
-      const r = new Room(newCode());
+      const r = new Room(newCode(), { onRecord: (uid, rec) => { try { store.addGame(uid, rec); } catch (e) { console.error('rekam gagal', e); } } });
       r.setOpts(m.opts || {});
       rooms.set(r.code, r);
       attach(r, name, token);
@@ -209,6 +302,7 @@ setInterval(() => {
 function shutdown() {
   console.log('Menutup server…');
   for (const r of rooms.values()) r.destroy();
+  try { store.flush(); } catch (e) { console.error(e); }
   server.close(() => process.exit(0));
   setTimeout(() => process.exit(0), 3000).unref();
 }

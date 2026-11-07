@@ -4,9 +4,9 @@
 const fs = require('fs'), path = require('path'), vm = require('vm');
 
 const ctx = vm.createContext({ console });
-for (const f of ['tiles.js', 'rules.js']) vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'js', f), 'utf8'), ctx, { filename: f });
-const { tileName, WIND_ID, scoreWin, toCounts, meldTiles, shantenAll, waitingTiles, TK } =
-  vm.runInContext('({ tileName, WIND_ID, scoreWin, toCounts, meldTiles, shantenAll, waitingTiles, TK })', ctx);
+for (const f of ['tiles.js', 'rules.js', 'record.js']) vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'js', f), 'utf8'), ctx, { filename: f });
+const { tileName, WIND_ID, scoreWin, toCounts, meldTiles, shantenAll, waitingTiles, TK, MjnRecorder, mjnHandResult } =
+  vm.runInContext('({ tileName, WIND_ID, scoreWin, toCounts, meldTiles, shantenAll, waitingTiles, TK, MjnRecorder, mjnHandResult })', ctx);
 
 const ABORT = { abort: true };
 const TURN_MS = 30000, CLAIM_MS = 12000, RESULT_MS = 30000, BOT_THINK = 750;
@@ -17,7 +17,9 @@ const plain = o => JSON.parse(JSON.stringify(o)); // lepaskan objek dari realm v
 function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = rnd(i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; }
 
 class Room {
-  constructor(code) {
+  constructor(code, opts = {}) {
+    this.onRecord = opts.onRecord || null;
+    this.recs = new Map();                 // kursi → perekam sesi pemain yang login
     this.code = code;
     this.seats = [null, null, null, null]; // {name, token, human, conn, connected}
     this.opts = { minFan: 1, length: 'east' };
@@ -49,13 +51,33 @@ class Room {
   }
   seatOfConn(conn) { return this.seats.findIndex(s => s && s.conn === conn); }
 
-  join(name, token, conn) {
+  /* ---------- rekaman sesi pemain yang login ---------- */
+  newRecorder(i) {
+    const s = this.seats[i];
+    if (!s || !s.userId || !this.onRecord) return;
+    this.recs.set(i, { userId: s.userId, r: new MjnRecorder({
+      mode: 'online', minFan: this.opts.minFan, length: this.opts.length,
+      opponents: this.seats.filter((x, j) => x && j !== i).map(x => x.name),
+    }) });
+  }
+  finishRecorder(i, complete) {
+    const e = this.recs.get(i);
+    if (!e) return;
+    this.recs.delete(i);
+    if (!e.r.handCount || !this.G) return;
+    const order = this.G.players.map((p, j) => ({ j, sc: p.score })).sort((a, b) => b.sc - a.sc);
+    const rec = e.r.finish({ rank: order.findIndex(o => o.j === i) + 1, score: this.G.players[i].score, complete });
+    try { this.onRecord(e.userId, plain(rec)); } catch (err) { console.error(err); }
+  }
+  finishAllRecorders(complete) { for (const i of [...this.recs.keys()]) this.finishRecorder(i, complete); }
+
+  join(name, token, conn, user) {
     let i = this.seats.findIndex(s => s && s.human && s.token === token);
     if (i < 0) {
       i = this.phase === 'lobby' ? this.seats.findIndex(s => !s) : this.seats.findIndex(s => s && !s.human);
       if (i < 0) return { error: this.phase === 'lobby' ? 'Room sudah penuh (4 pemain).' : 'Semua kursi sudah diisi pemain manusia.' };
       const replacing = this.seats[i];
-      this.seats[i] = { name, token, human: true, conn: null, connected: false };
+      this.seats[i] = { name, token, human: true, conn: null, connected: false, userId: null };
       if (this.G) {
         this.G.players[i].name = name;
         this.log(`${name} bergabung menggantikan ${replacing ? replacing.name : 'kursi kosong'}.`);
@@ -65,6 +87,11 @@ class Room {
     const s = this.seats[i];
     if (s.conn && s.conn !== conn) { try { s.conn.send({ t: 'kicked', msg: 'Akun ini membuka room di tab lain.' }); } catch { } }
     s.conn = conn; s.connected = true; s.name = name;
+    if (user && s.userId !== user.id) {             // login (atau ganti akun) di kursi ini
+      if (this.recs.has(i)) this.finishRecorder(i, false);
+      s.userId = user.id;
+      if (this.phase === 'playing') this.newRecorder(i);   // mulai tercatat dari hand berikutnya
+    }
     if (this.G) this.G.players[i].name = name;
     if (!this.hostToken || this.hostSeat() < 0) this.hostToken = token;
     this.ensureHost();
@@ -93,6 +120,7 @@ class Room {
     const s = this.seats[i];
     if (this.phase === 'lobby') this.seats[i] = null;
     else {
+      this.finishRecorder(i, false);
       const used = this.seats.map(x => x && x.name);
       this.seats[i] = { name: BOT_NAMES.find(n => !used.includes(n)) || 'Bot', token: null, human: false, conn: null, connected: false };
       if (this.G) this.G.players[i].name = this.seats[i].name;
@@ -106,6 +134,7 @@ class Room {
     this.broadcast();
   }
   destroy() {
+    if (this.phase === 'playing') this.finishAllRecorders(false);
     this.alive = false;
     for (const pd of [...this.pending.values()]) pd.resolve(pd.fallback());
     if (this.humanWaiter) this.humanWaiter();
@@ -193,16 +222,17 @@ class Room {
   /* ================= alur permainan ================= */
   sleep(ms) { return new Promise((res, rej) => setTimeout(() => (this.alive ? res() : rej(ABORT)), ms)); }
   isLive(p) { const s = this.seats[p]; return s && s.human && s.connected; }
-  ask(p, ui, ms, fallback) {
-    if (!this.isLive(p)) return Promise.resolve(fallback());
+  ask(p, ui, ms, fallback, meta = {}) {
+    const auto = () => { meta.auto = true; return fallback(); };
+    if (!this.isLive(p)) return Promise.resolve(auto());
     return new Promise(resolve => {
       const pd = {
-        ui, ms, deadline: Date.now() + ms, fallback,
+        ui, ms, deadline: Date.now() + ms, fallback: auto,
         resolve: v => { if (pd.done) return; pd.done = true; clearTimeout(pd.timer); this.pending.delete(p); resolve(v); this.broadcast(); },
       };
       pd.timer = setTimeout(() => {
         if (this.G) this.log(`⏱ Waktu ${this.seats[p].name} habis — langkah dipilih otomatis.`);
-        pd.resolve(fallback());
+        pd.resolve(auto());
       }, ms);
       this.pending.set(p, pd);
       this.broadcast();
@@ -230,6 +260,8 @@ class Room {
       dealer: 0, firstDealer: 0, roundWind: 0, handNo: 0, wall: [], turn: -1, log: [], msg: '', dice: null,
       reveal: false, lastDiscard: null, callout: null, result: null, final: null, paused: false,
     };
+    this.recs.clear();
+    for (let i = 0; i < 4; i++) this.newRecorder(i);
     this.sys('Permainan dimulai!');
     this.run();
   }
@@ -243,6 +275,7 @@ class Room {
       }
       const G = this.G;
       G.final = G.players.map((p, i) => ({ name: p.name, score: p.score, i })).sort((a, b) => b.score - a.score);
+      this.finishAllRecorders(true);
       G.turn = -1;
       this.phase = 'finished';
       this.sys(`Permainan selesai — juara: ${G.final[0].name}!`);
@@ -306,6 +339,7 @@ class Room {
     G.msg = 'Kartu dibagikan: dealer 14 kartu, pemain lain 13.';
     this.broadcast(); await this.sleep(700);
     for (let i = 0; i < 4; i++) await this.replaceInitialFlowers((G.dealer + i) % 4);
+    for (const [i, e] of this.recs) e.r.startHand({ dealer: i === G.dealer, wind: this.seatWind(i) });
 
     let cur = G.dealer, phase = 'afterDraw', flags = { heavenly: true, kongDraw: false };
     while (true) {
@@ -421,7 +455,17 @@ class Room {
         const ui = { mode: 'turn', win, kongs, hintId: h.id, hintK: h.k, hintS: h.s };
         if (h.s === 0) { const ks = pl.hand.map(t => t.k); ks.splice(ks.indexOf(h.k), 1); ui.waits = plain(waitingTiles(ks, pl.melds.length)); }
         G.msg = `Giliran ${esc(this.nm(p))}.`;
-        act = await this.ask(p, ui, TURN_MS, () => this.aiTurn(p, win, kongs));
+        const meta = {};
+        act = await this.ask(p, ui, TURN_MS, () => this.aiTurn(p, win, kongs), meta);
+        const e = this.recs.get(p);
+        if (e && act.type === 'discard') {
+          const t = pl.hand.find(x => x.id === act.id);
+          if (t) {
+            const c = toCounts(pl.hand.map(x => x.k)); c[t.k]--;
+            e.r.discard({ k: t.k, bestK: h.k, bestS: h.s, sAfter: shantenAll(c, pl.melds.length), auto: !!meta.auto });
+            if (!meta.auto && win && !win.insufficient) e.r.missedTsumo({ fan: win.fan });
+          }
+        }
       }
       if (act.type === 'tsumo' && win && !win.insufficient) { this.callout(p, 'ZIMO!'); return { type: 'tsumo', score: win }; }
       if (act.type === 'kong') {
@@ -473,7 +517,12 @@ class Room {
       if (!this.isLive(o.p)) return Promise.resolve(this.aiClaim(o.p, tile, o));
       const s = this.aiClaim(o.p, tile, o);
       const hint = s ? `Saran: <b>${{ win: 'Hu (menang)', chow: 'Chow', kong: 'Kong', pong: 'Pong' }[s.type]}</b>.` : 'Saran: lewati — klaim ini tidak mempercepat tanganmu.';
-      return this.ask(o.p, { mode: 'claim', tile, from, opt: o, hint }, CLAIM_MS, () => (o.win ? { type: 'win' } : null));
+      const meta = {};
+      return this.ask(o.p, { mode: 'claim', tile, from, opt: o, hint }, CLAIM_MS, () => (o.win ? { type: 'win' } : null), meta).then(d => {
+        const e = this.recs.get(o.p);
+        if (e) e.r.claim({ offered: o, suggestion: s, decision: d, tileK: tile.k, auto: !!meta.auto });
+        return d;
+      });
     }));
     const list = decs.map((d, j) => d && { ...d, p: opts[j].p, i: opts[j].i, score: opts[j].win }).filter(Boolean);
     const pickBy = types => list.filter(d => types.includes(d.type)).sort((a, b) => a.i - b.i)[0];
@@ -525,6 +574,12 @@ class Room {
       delta: G.players.map((p, i) => p.score - before[i]), dealerStays: stays, handNo: G.handNo, roundWind: G.roundWind,
       winds: [0, 1, 2, 3].map(i => this.seatWind(i)), dealer: G.dealer, last: false,
     };
+    for (const [i, e] of this.recs) {
+      const r = mjnHandResult(res, i);
+      const mine = r === 'win' || r === 'zimo';
+      e.r.endHand({ r, fan: mine ? res.score.fan : 0, pattern: mine ? res.score.pattern : '', items: mine ? res.score.items : [],
+        delta: G.result.delta[i], k: r === 'dealin' && res.tile ? res.tile.k : null });
+    }
     // apakah ini hand terakhir?
     const nd = stays ? G.dealer : (G.dealer + 1) % 4;
     const nr = !stays && nd === G.firstDealer ? G.roundWind + 1 : G.roundWind;

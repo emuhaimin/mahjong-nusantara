@@ -4,3 +4,5 @@ mahjong-nusantara.tar.gz
 node_modules/
 .DS_Store
 .claude/
+# data akun & riwayat lokal (server dev)
+data/

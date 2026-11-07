@@ -49,12 +49,26 @@ say "Menyalin aplikasi ke $APP_DIR"
 id mahjong >/dev/null 2>&1 || useradd --system --no-create-home --shell /usr/sbin/nologin mahjong
 mkdir -p "$APP_DIR"
 rm -rf "$APP_DIR/css" "$APP_DIR/js" "$APP_DIR/server" "$APP_DIR/assets"
-cp -r "$SRC/index.html" "$SRC/css" "$SRC/js" "$SRC/assets" "$SRC/server" "$SRC/package.json" "$SRC/sw.js" "$SRC/manifest.webmanifest" "$APP_DIR/"
+cp -r "$SRC/index.html" "$SRC/css" "$SRC/js" "$SRC/assets" "$SRC/server" "$SRC/package.json" "$SRC/sw.js" "$SRC/manifest.webmanifest" "$SRC/privacy.html" "$APP_DIR/"
 # versi cache PWA otomatis berganti setiap deploy → pemain langsung dapat versi terbaru
 REL="$(git -C "$SRC" rev-parse --short HEAD 2>/dev/null || date +%s)"
 sed -i "s/const VERSION = 'mjn-[^']*'/const VERSION = 'mjn-$REL'/" "$APP_DIR/sw.js"
 chown -R root:root "$APP_DIR"
 chmod -R a+rX,go-w "$APP_DIR"
+
+# 3b) Login Google: simpan Client ID (jika diberikan) ke /etc/mahjong-nusantara.env
+ENV_FILE=/etc/mahjong-nusantara.env
+if [ -n "${GOOGLE_CLIENT_ID:-}" ]; then
+  case "$GOOGLE_CLIENT_ID" in
+    *.apps.googleusercontent.com) ;;
+    *) die "GOOGLE_CLIENT_ID tidak valid (harus berakhiran .apps.googleusercontent.com).";;
+  esac
+  touch "$ENV_FILE"; chmod 644 "$ENV_FILE"
+  grep -v '^GOOGLE_CLIENT_ID=' "$ENV_FILE" > "$ENV_FILE.tmp" || true
+  echo "GOOGLE_CLIENT_ID=$GOOGLE_CLIENT_ID" >> "$ENV_FILE.tmp"; mv "$ENV_FILE.tmp" "$ENV_FILE"
+  say "Client ID Google disimpan."
+fi
+if grep -q '^GOOGLE_CLIENT_ID=.' "$ENV_FILE" 2>/dev/null; then echo "Login Google: AKTIF"; else warn "Login Google belum aktif (jalankan ulang dengan GOOGLE_CLIENT_ID=...)."; fi
 
 # 4) Layanan systemd
 say "Menyiapkan layanan systemd 'mahjong'"

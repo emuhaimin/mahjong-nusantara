@@ -10,6 +10,11 @@ WorkingDirectory=/opt/mahjong-nusantara
 Environment=NODE_ENV=production
 Environment=HOST=127.0.0.1
 Environment=PORT=__PORT__
+# Client ID Google & pengaturan lain (opsional)
+EnvironmentFile=-/etc/mahjong-nusantara.env
+# data akun & riwayat → /var/lib/mahjong-nusantara (tetap ada saat update)
+StateDirectory=mahjong-nusantara
+StateDirectoryMode=0700
 ExecStart=__NODE__ server/server.js
 Restart=always
 RestartSec=3

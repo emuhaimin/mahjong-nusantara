@@ -42,6 +42,10 @@ const Game = (() => {
       dealer: 0, firstDealer: 0, roundWind: 0, handNo: 0, wall: [], turn: -1, log: [], msg: '', dice: null,
       ui: null, reveal: false, lastDiscard: null, callout: null,
     };
+    // rekam sesi pemain (disimpan ke akun jika login)
+    G.rec = !watch && typeof MjnRecorder !== 'undefined'
+      ? new MjnRecorder({ mode: 'bot', minFan: cfg.minFan, length: cfg.length, opponents: names.slice(1) }) : null;
+    G.recSent = false;
     $('#setup').hidden = true; $('#game').hidden = false;
     syncTools();
     render();
@@ -124,6 +128,7 @@ const Game = (() => {
     render(); await wait(600);
 
     for (let i = 0; i < 4; i++) await replaceInitialFlowers((G.dealer + i) % 4);
+    if (G.rec) G.rec.startHand({ dealer: G.dealer === 0, wind: seatWind(0) });
 
     let cur = G.dealer, phase = 'afterDraw';
     let flags = { heavenly: true, kongDraw: false };
@@ -251,8 +256,8 @@ const Game = (() => {
         act = AI.turn(p, win, kongs);
       } else {
         const ui = { mode: 'turn', win, kongs, selected: null };
+        const h = AI.evalDiscard(p);
         if (cfg.hint) {
-          const h = AI.evalDiscard(p);
           ui.hintId = h.id; ui.hintK = h.k; ui.hintS = h.s;
           if (h.s === 0) {
             const ks = kindsOf(pl); ks.splice(ks.indexOf(h.k), 1);
@@ -261,6 +266,14 @@ const Game = (() => {
         }
         G.msg = 'Giliranmu.';
         act = await askHuman(ui);
+        if (G.rec && act.type === 'discard') {
+          const t = pl.hand.find(x => x.id === act.id);
+          if (t) {
+            const c = toCounts(kindsOf(pl)); c[t.k]--;
+            G.rec.discard({ k: t.k, bestK: h.k, bestS: h.s, sAfter: shantenAll(c, pl.melds.length) });
+            if (win && !win.insufficient) G.rec.missedTsumo({ fan: win.fan });
+          }
+        }
       }
       if (act.type === 'tsumo' && win && !win.insufficient) { callout(p, 'ZIMO!'); return { type: 'tsumo', score: win }; }
       if (act.type === 'kong') {
@@ -319,12 +332,14 @@ const Game = (() => {
       if (pl.isAI) d = AI.claim(o.p, tile, o);
       else {
         const ui = { mode: 'claim', tile, from, opt: o };
+        const sug = AI.claim(o.p, tile, o);
         if (cfg.hint) {
-          const s = AI.claim(o.p, tile, o);
+          const s = sug;
           ui.hint = s ? `Saran: <b>${s.type === 'win' ? 'Hu (menang)' : s.type === 'chow' ? 'Chow' : s.type === 'kong' ? 'Kong' : 'Pong'}</b>.` : 'Saran: lewati — klaim ini tidak mempercepat tanganmu.';
         }
         G.msg = `${pname(from)} membuang ${tileName(tile.k)}.`;
         d = await askHuman(ui);
+        if (G.rec) G.rec.claim({ offered: o, suggestion: sug, decision: d, tileK: tile.k });
       }
       if (d) decs.push({ ...d, p: o.p, i: o.i, score: o.win });
     }
@@ -391,6 +406,11 @@ const Game = (() => {
       log(`${pname(w)}: ${res.score.fan} fan = ${base} poin dasar.`);
     }
     res.delta = G.players.map((p, i) => p.score - before[i]);
+    if (G.rec) {
+      const r = mjnHandResult(res, 0), mine = r === 'win' || r === 'zimo';
+      G.rec.endHand({ r, fan: mine ? res.score.fan : 0, pattern: mine ? res.score.pattern : '', items: mine ? res.score.items : [],
+        delta: res.delta[0], k: r === 'dealin' && res.tile ? res.tile.k : null });
+    }
     res.dealerStays = stays;
     render();
     await showResult(res);
@@ -459,7 +479,15 @@ const Game = (() => {
     });
   }
 
+  function submitRecord(complete) {
+    if (!G || !G.rec || G.recSent || !G.rec.handCount) return;
+    G.recSent = true;
+    const order = G.players.map((p, j) => ({ j, sc: p.score })).sort((a, b) => b.sc - a.sc);
+    const rec = G.rec.finish({ rank: order.findIndex(o => o.j === 0) + 1, score: G.players[0].score, complete });
+    if (typeof Account !== 'undefined') Account.submit(rec);
+  }
   function showFinal() {
+    submitRecord(true);
     const rank = G.players.map((p, i) => ({ ...p, i })).sort((a, b) => b.score - a.score);
     const h = `<h2>🏆 Permainan selesai</h2><p>Juara: <b>${esc(rank[0].name)}</b> dengan ${rank[0].score} poin.</p>
       <table class="fan-table"><thead><tr><th>#</th><th>Pemain</th><th>Skor akhir</th></tr></thead><tbody>${rank.map((p, n) => `<tr><td>${n + 1}</td><td>${esc(p.name)}</td><td>${p.score} <small class="muted">(${p.score - 500 >= 0 ? '+' : ''}${p.score - 500})</small></td></tr>`).join('')}</tbody></table>
@@ -689,6 +717,7 @@ const Game = (() => {
   }
 
   function quit() {
+    submitRecord(false);
     stop();
     $('#game').hidden = true; $('#setup').hidden = false;
   }
