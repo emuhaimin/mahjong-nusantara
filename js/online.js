@@ -7,6 +7,7 @@ const Online = (() => {
   const POS = ['bottom', 'right', 'top', 'left'];
   const LS = 'mjn-online';
   let ws = null, S = null, everOpen = false, retry = null, sel = null, deadlineAt = 0, totalMs = 0;
+  let lastCallout = null;
   let active = false, seenChat = -1, logOpen = false, modalKey = '';
 
   const load = () => { try { return JSON.parse(localStorage.getItem(LS)) || {}; } catch { return {}; } };
@@ -79,7 +80,11 @@ const Online = (() => {
       S = m; S.offline = false;
       if (S.ui) { deadlineAt = Date.now() + S.ui.remain; totalMs = S.ui.total; }
       const nowUi = S.ui ? S.ui.mode + (S.g && S.g.turn) : '';
-      if (nowUi !== prevUi) sel = null;
+      if (nowUi !== prevUi) {
+        sel = null;
+        if (S.ui && S.ui.mode === 'claim') FX.vibrate(S.ui.opt && S.ui.opt.win ? [80, 50, 80] : 120);
+        else if (S.ui && S.ui.win && !S.ui.win.insufficient) FX.vibrate([80, 50, 80]);
+      }
       render();
     }
   }
@@ -128,6 +133,11 @@ const Online = (() => {
       <div class="c-msg">${g.msg || ''}</div>${g.paused ? '<div class="paused">Dijeda — tidak ada pemain terhubung.</div>' : ''}`;
     renderActions();
     renderChat();
+    if (g.callout && g.callout.id !== lastCallout) {
+      const fresh = lastCallout !== null || Date.now() - g.callout.id < 2500;
+      lastCallout = g.callout.id;
+      if (fresh) FX.callout(g.callout.text, g.players[g.callout.p].name, $('#on-s-' + POS[rel(g.callout.p)]));
+    }
     if (logOpen) $('#on-log').innerHTML = g.log.map(l => `<div>${esc(l)}</div>`).join('');
     renderModal();
   }
@@ -156,14 +166,13 @@ const Online = (() => {
     const melds = pl.melds.map(m => `<div class="meld">${meldTiles(m).map((k, j) => (m.type === 'kong' && m.concealed && (j === 0 || j === 3) && !g.reveal && !me) ? backHTML(msz) : tileHTML(k, { cls: msz })).join('')}</div>`).join('');
     const ld = g.lastDiscard;
     const dis = pl.discards.map(t => tileHTML(t.k, { cls: 'xs' + (ld && ld.id === t.id ? ' last' : '') })).join('');
-    const co = g.callout && g.callout.p === i ? `<div class="callout">${g.callout.text}</div>` : '';
     const H = `<div class="seat-hand">${hand}</div>`, M = `<div class="seat-melds">${melds}</div>`, D = `<div class="seat-discards">${dis}</div>`;
     let html;
     if (pos === 'top') html = info + `<div class="seat-row">${H}${M}</div>` + D;
     else if (pos === 'bottom') html = D + `<div class="seat-row">${H}${M}</div>` + info;
     else if (pos === 'left') html = info + M + `<div class="seat-row">${H}${D}</div>`;
     else html = info + M + `<div class="seat-row">${D}${H}</div>`;
-    el.innerHTML = html + co;
+    el.innerHTML = html;
   }
 
   function timerHTML() {
@@ -173,6 +182,8 @@ const Online = (() => {
   }
   function renderActions() {
     const bar = $('#on-action'), ui = S.ui, g = S.g, hint = $('#on-hint').checked;
+    bar.classList.toggle('alert-turn', !!ui && ui.mode === 'turn');
+    bar.classList.toggle('alert-claim', !!ui && ui.mode === 'claim');
     if (!ui) {
       const t = g.turn >= 0 ? g.players[g.turn] : null;
       const live = t && S.seats[g.turn] && S.seats[g.turn].human && S.seats[g.turn].connected;

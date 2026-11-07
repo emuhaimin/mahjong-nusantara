@@ -360,14 +360,13 @@ const Game = (() => {
 
   function callout(p, text) {
     if (!G) return;
-    G.callout = { p, text };
-    render();
-    const t = token;
-    setTimeout(() => { if (G && t === token && G.callout && G.callout.text === text) { G.callout = null; render(); } }, 1100);
+    FX.callout(text, G.players[p].name, $('#seat-' + p));
   }
 
   function askHuman(ui) {
     G.ui = ui; render();
+    if (ui.mode === 'claim') FX.vibrate(ui.opt && ui.opt.win ? [80, 50, 80] : 120);
+    else if (ui.win && !ui.win.insufficient) FX.vibrate([80, 50, 80]);
     return new Promise((resolve, reject) => {
       pending = { resolve: v => { pending = null; if (G) G.ui = null; resolve(v); render(); }, reject };
     });
@@ -629,7 +628,6 @@ const Game = (() => {
     const melds = pl.melds.map(m => `<div class="meld" title="${m.type}">${meldTiles(m).map((k, i) => (m.type === 'kong' && m.concealed && (i === 0 || i === 3)) ? backHTML(msz) : tileHTML(k, { cls: msz })).join('')}</div>`).join('');
     const ld = G.lastDiscard;
     const dis = pl.discards.map(t => tileHTML(t.k, { cls: 'xs' + (ld && ld.id === t.id ? ' last' : '') })).join('');
-    const co = G.callout && G.callout.p === p ? `<div class="callout">${G.callout.text}</div>` : '';
 
     const H = `<div class="seat-hand">${hand}</div>`, M = `<div class="seat-melds">${melds}</div>`, D = `<div class="seat-discards">${dis}</div>`;
     let html;
@@ -637,7 +635,7 @@ const Game = (() => {
     else if (pos === 'bottom') html = D + `<div class="seat-row">${H}${M}</div>` + info;
     else if (pos === 'left') html = info + M + `<div class="seat-row">${H}${D}</div>`;
     else html = info + M + `<div class="seat-row">${D}${H}</div>`;
-    el.innerHTML = html + co;
+    el.innerHTML = html;
   }
   function renderCenter() {
     $('#center').innerHTML = `<div class="c-round"><span class="c-wind">${WIND_CH[Math.min(G.roundWind, 3)]}</span><div><b>Ronde Angin ${WIND_ID[Math.min(G.roundWind, 3)]}</b><small>Hand ke-${G.handNo} · Dealer: ${pname(G.dealer)}</small></div></div>
@@ -647,6 +645,8 @@ const Game = (() => {
   }
   function renderActions() {
     const bar = $('#action-bar'), ui = G.ui;
+    bar.classList.toggle('alert-turn', !!ui && ui.mode === 'turn');
+    bar.classList.toggle('alert-claim', !!ui && ui.mode === 'claim');
     if (!ui) {
       const t = G.turn >= 0 ? G.players[G.turn] : null;
       bar.innerHTML = t ? `<div class="ab-msg">Giliran: <b>${esc(t.name)}</b>${t.isAI ? ' — sedang berpikir…' : ''}</div>` : '';

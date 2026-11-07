@@ -124,8 +124,6 @@ select,input[type=text],input:not([type]),input[type=number]{font:inherit;font-w
 .pos-left .seat-melds,.pos-right .seat-melds{flex-direction:column;align-items:center}
 .seat.pos-bottom{padding-top:4px}
 .seat.pos-bottom .seat-discards{max-width:560px}
-.callout{position:absolute;top:30%;left:50%;transform:translate(-50%,-50%);background:#f2c14e;color:#3a2503;font-weight:800;font-size:24px;padding:8px 18px;border-radius:12px;box-shadow:0 6px 20px rgba(0,0,0,.4);z-index:5;pointer-events:none;animation:pop .35s ease-out}
-@keyframes pop{from{transform:translate(-50%,-50%) scale(.4);opacity:0}}
 
 .center{align-self:center;justify-self:center;width:min(100%,360px);background:rgba(0,0,0,.25);border:1px solid rgba(255,255,255,.12);border-radius:18px;padding:16px;text-align:center;display:flex;flex-direction:column;gap:10px;align-items:center}
 .c-round{display:flex;align-items:center;gap:10px;text-align:left}
@@ -285,7 +283,6 @@ table.tbl td.num{text-align:right;font-weight:800;white-space:nowrap}
   .slot-me .seat-hand .tile{font-size:min(19px,calc((100vw - 52px) / 20.5))}
   .slot-me .seat-hand .tile.drawn{margin-left:.3em}
   .slot-me .meld .tile{font-size:11px}
-  .callout{font-size:18px;top:50%}
   .modal-box{padding:16px}
   .learn-main{padding:16px}
   .learn-main h2{font-size:21px}
@@ -382,3 +379,30 @@ body.in-game .table{
 .is-app [data-fullscreen],.is-app [data-install]{display:none!important}
 /* cegah tarik-untuk-refresh & sorot biru saat mengetuk kartu di HP */
 body.in-game{overscroll-behavior:none;-webkit-tap-highlight-color:transparent}
+
+/* ---------- NOTIFIKASI BESAR BERKEDIP ---------- */
+.fx-call{position:fixed;z-index:95;transform:translate(-50%,-50%);pointer-events:none;display:flex;flex-direction:column;align-items:center;gap:6px;
+  padding:16px 40px 14px;border-radius:22px;color:#fff;white-space:nowrap;
+  box-shadow:0 14px 44px rgba(0,0,0,.55),0 0 0 5px rgba(255,255,255,.9),0 0 60px 10px rgba(255,255,255,.25);
+  animation:fxIn .4s cubic-bezier(.2,1.7,.4,1) both,fxBlink .3s .45s 5 alternate,fxOut .4s 1.9s forwards}
+.fx-call b{font:900 72px/1 var(--sans);letter-spacing:.06em;text-shadow:0 4px 0 rgba(0,0,0,.25)}
+.fx-call small{font:800 16px/1.1 var(--sans);opacity:.95;max-width:70vw;overflow:hidden;text-overflow:ellipsis}
+.fx-chow{background:linear-gradient(180deg,#26b574,#0d6a45)}
+.fx-pong{background:linear-gradient(180deg,#ffa53a,#cf640b)}
+.fx-kong{background:linear-gradient(180deg,#9c6cff,#5a2bc4)}
+.fx-hu{background:linear-gradient(180deg,#ffe066,#e2a100);color:#3a2503;box-shadow:0 14px 44px rgba(0,0,0,.55),0 0 0 6px #fff,0 0 90px 24px rgba(255,214,90,.6)}
+.fx-hu b{font-size:96px}
+@keyframes fxIn{from{transform:translate(-50%,-50%) scale(.25);opacity:0}}
+@keyframes fxBlink{to{opacity:.3;filter:brightness(1.5)}}
+@keyframes fxOut{to{transform:translate(-50%,-50%) scale(1.2);opacity:0}}
+@media (max-width:820px){.fx-call{padding:14px 30px 12px}.fx-call b{font-size:54px}.fx-hu b{font-size:72px}}
+@media (prefers-reduced-motion:reduce){.fx-call{animation:fxIn .2s both,fxOut .3s 1.9s forwards}}
+
+/* kotak aksi berkedip saat menunggu kamu */
+.action-bar{border-radius:16px;transition:background .2s}
+.action-bar.alert-turn{animation:abTurn 1.3s ease-in-out infinite}
+.action-bar.alert-claim{background:rgba(242,193,78,.18);animation:abClaim .55s ease-in-out infinite alternate}
+.action-bar.alert-claim .ab-msg{font-size:17px;font-weight:700}
+@keyframes abTurn{50%{box-shadow:0 0 0 3px rgba(255,255,255,.6),0 0 22px rgba(255,255,255,.25)}}
+@keyframes abClaim{from{box-shadow:0 0 0 3px #f2c14e,0 0 26px rgba(242,193,78,.8)}to{box-shadow:0 0 0 3px rgba(242,193,78,.15),0 0 0 rgba(242,193,78,0)}}
+@media (prefers-reduced-motion:reduce){.action-bar.alert-turn,.action-bar.alert-claim{animation:none;box-shadow:0 0 0 3px #f2c14e}}
