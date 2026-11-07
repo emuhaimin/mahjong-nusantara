@@ -44,6 +44,7 @@ function tileName(k) {
 /* Gambar kartu: FluffyStuff riichi-mahjong-tiles (public domain / CC0),
    Naga Putih berbingkai biru & Bunga/Musim dibuat untuk situs ini. */
 const TILE_BASE = 'assets/tiles/';
+const TILE_VER = '1'; // naikkan jika gambar kartu diganti (agar cache browser diperbarui)
 const HONOR_IMG = ['Ton', 'Nan', 'Shaa', 'Pei', 'Chun', 'Hatsu', 'Haku'];
 function tileImg(k) {
   if (k < 9) return 'Man' + (k + 1);
@@ -57,7 +58,7 @@ function tileFace(k) {
     const i = (k - 34) % 4, fl = k < 38;
     return `<span class="corner">${i + 1}</span><span class="big ${fl ? 'fl' : 'se'}">${fl ? FLOWER_CH[i] : SEASON_CH[i]}</span><span class="fsub">${fl ? FLOWER_ID[i] : SEASON_ID[i]}</span>`;
   }
-  let h = `<img class="tf" src="${TILE_BASE}${tileImg(k)}.svg" alt="" draggable="false">`;
+  let h = `<img class="tf" src="${TILE_BASE}${tileImg(k)}.svg?v=${TILE_VER}" alt="" draggable="false">`;
   if (k < 9) h += `<span class="corner">${k + 1}</span>`;                 // bantu baca angka Tionghoa
   else if (k >= 27 && k < 31) h += `<span class="corner">${WIND_SHORT[k - 27]}</span>`;
   return h;

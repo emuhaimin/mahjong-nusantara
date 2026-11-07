@@ -62,7 +62,7 @@ p{margin:0 0 .8em}
 
 /* ---------- TILES ---------- */
 .tile{font-size:18px;width:2.4em;height:3.2em;flex:none;position:relative;display:inline-flex;flex-direction:column;align-items:center;justify-content:center;gap:.04em;
-  background:url("../assets/tiles/Front.svg") center/100% 100% no-repeat;border-radius:.32em;
+  background:url("../assets/tiles/Front.svg?v=1") center/100% 100% no-repeat;border-radius:.32em;
   box-shadow:0 .1em 0 #d8cdb4,0 .2em 0 #c2b391,0 .26em .45em rgba(0,0,0,.35);
   margin:0 .05em .3em;color:#1b1b1b;font-family:var(--cjk);line-height:1;user-select:none;-webkit-user-select:none;vertical-align:top;transition:transform .12s, outline-color .12s}
 .tile.lg{font-size:21px}.tile.md{font-size:16px}.tile.sm{font-size:12px}.tile.xs{font-size:10px}.tile.xxs{font-size:8px;vertical-align:middle}
@@ -71,7 +71,7 @@ p{margin:0 0 .8em}
 .tile .fl{color:#b3262e}.tile .se{color:#1d4fae}
 .tile .corner{position:absolute;top:.2em;left:.26em;font:800 .42em/1 var(--sans);color:#8a7a5c;z-index:1}
 .tile .fsub{font:700 .38em/1 var(--sans);color:#8a7a5c;margin-top:.14em}
-.tile.back{background:url("../assets/tiles/Back.svg") center/100% 100% no-repeat;box-shadow:0 .1em 0 #f0e8d4,0 .2em 0 #d4c7a3,0 .26em .45em rgba(0,0,0,.35)}
+.tile.back{background:url("../assets/tiles/Back.svg?v=1") center/100% 100% no-repeat;box-shadow:0 .1em 0 #f0e8d4,0 .2em 0 #d4c7a3,0 .26em .45em rgba(0,0,0,.35)}
 .tile.slat{width:2.3em;height:1.05em;margin:0 0 .12em;background:linear-gradient(180deg,#ff4a3d,#c92a22);box-shadow:.2em .14em 0 #e9dfc6}
 .tile.sel{transform:translateY(-.55em)}
 .tile.hint{outline:.15em solid #f5c542;outline-offset:.06em}
