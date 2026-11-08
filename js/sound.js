@@ -5,7 +5,7 @@
    Efek: buang kartu, Chow, Pong, Kong, Bunga, Riichi, menang (fanfare + tepuk tangan), dadu. */
 const Sound = (() => {
   const KEY = 'mjn-sound';
-  const DEF = { music: 'gamelan', mvol: 0.35, sfx: true, svol: 0.8 };
+  const DEF = { music: 'gamelan', mvol: 0.35, sfx: true, svol: 0.8, muted: false };
   let S = Object.assign({}, DEF);
   try { Object.assign(S, JSON.parse(localStorage.getItem(KEY)) || {}); } catch { }
   const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch { } };
@@ -61,7 +61,8 @@ const Sound = (() => {
   const clack = (t, g = 0.5, f = 2600) => { noise(t, 0.035, { freq: f, q: 2.5, gain: g }); tone(f * 0.42, t, 0.04, { type: 'triangle', gain: g * .35 }); };
 
   /* ---------------- efek suara ---------------- */
-  const can = () => S.sfx && ensure();
+  let preview = false;
+  const can = () => S.sfx && (!S.muted || preview) && ensure();
   const SFX = {
     tile() { if (!can()) return; clack(now(), 0.35, 2300 + Math.random() * 600); },
     chow() { if (!can()) return; const t = now(); clack(t, .45); clack(t + .09, .45, 2900); tone(523, t + .16, .35, { type: 'triangle', gain: .25 }); tone(659, t + .24, .4, { type: 'triangle', gain: .22 }); },
@@ -133,6 +134,7 @@ const Sound = (() => {
     if (!id || id === 'off' || !ensure()) return;
     const bus = ctx.createGain(); bus.gain.setValueAtTime(0.0001, now()); bus.gain.exponentialRampToValueAtTime(1, now() + 2); bus.connect(musicBus);
     const timers = [], nodes = [], cleanup = [];
+    let skip = null;                             // MP3: lompat ke lagu berikutnya
     const every = (ms, fn) => { const h = setInterval(() => { if (ctx.state === 'running') fn(); }, ms); timers.push(h); fn(); };
     const loopNoise = ({ type, freq, q = .7, gain }) => {
       const s = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain();
@@ -188,21 +190,23 @@ const Sound = (() => {
       const next = () => {
         if (dead || !list.length) return;
         if (url) URL.revokeObjectURL(url);
-        url = URL.createObjectURL(list[i++ % list.length].blob);
+        const tr = list[i++ % list.length];
+        url = URL.createObjectURL(tr.blob);
         audio.src = url; audio.play().catch(() => { });
+        return tr.name;
       };
+      skip = () => (list.length > 1 ? next() : null);
       audio.onended = () => { fails = 0; next(); };
       audio.onerror = () => { if (++fails < list.length) next(); };
       DB.all().then(a => { for (let k = a.length - 1; k > 0; k--) { const j = Math.floor(Math.random() * (k + 1)); [a[k], a[j]] = [a[j], a[k]]; } list = a; next(); }).catch(() => { });
       cleanup.push(() => { dead = true; audio.pause(); audio.removeAttribute('src'); audio.load(); if (url) URL.revokeObjectURL(url); src.disconnect(); });
     }
-    music = { id, stop() { timers.forEach(clearInterval); const t = now(); bus.gain.cancelScheduledValues(t); bus.gain.setValueAtTime(bus.gain.value || .0001, t); bus.gain.exponentialRampToValueAtTime(0.0001, t + .8); setTimeout(() => { nodes.forEach(n => { try { n.stop(); } catch { } }); cleanup.forEach(f => { try { f(); } catch { } }); bus.disconnect(); }, 1000); } };
+    music = { id, skip: () => skip && skip(), stop() { timers.forEach(clearInterval); const t = now(); bus.gain.cancelScheduledValues(t); bus.gain.setValueAtTime(bus.gain.value || .0001, t); bus.gain.exponentialRampToValueAtTime(0.0001, t + .8); setTimeout(() => { nodes.forEach(n => { try { n.stop(); } catch { } }); cleanup.forEach(f => { try { f(); } catch { } }); bus.disconnect(); }, 1000); } };
   }
   function stopMusic() { if (music) { music.stop(); music = null; } }
-  let preview = false;
   const inGame = () => document.body.classList.contains('in-game');
   function syncMusic() {
-    const want = (inGame() || preview) && S.music !== 'off' && !document.hidden ? S.music : null;
+    const want = (preview || (inGame() && !S.muted)) && S.music !== 'off' && !document.hidden ? S.music : null;
     if ((music && music.id) === want) return;
     if (want) { if (ctx && ctx.state !== 'running') ctx.resume().catch(() => { }); startMusic(want); } else stopMusic();
   }
@@ -264,7 +268,37 @@ const Sound = (() => {
     });
   }
   const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-  const label = () => { const m = MUSIC.find(x => x.id === S.music) || MUSIC[0]; return `${m.ic} ${m.name}${S.sfx ? ' · efek aktif' : ' · efek mati'}`; };
+  const label = () => { const m = MUSIC.find(x => x.id === S.music) || MUSIC[0]; return `${m.ic} ${m.name}${S.sfx ? ' · efek aktif' : ' · efek mati'}${S.muted ? ' · dibisukan' : ''}`; };
+
+  /* ---------------- tombol cepat di meja: ganti lagu & bisukan ---------------- */
+  const say = msg => { try { FX.toast(msg); } catch { } };      // FX = const global di fx.js (bukan window.FX)
+  function nextSong() {
+    ensure();
+    if (S.muted) { S.muted = false; }
+    if (S.music === 'mine' && music && music.id === 'mine') {   // MP3 sendiri: lagu berikutnya
+      const name = music.skip();
+      if (name) { save(); updateDock(); return say(`⏭ ${name}`); }
+    }
+    const ids = MUSIC.filter(m => m.id !== 'off' && (m.id !== 'mine' || tracks.length)).map(m => m.id);
+    S.music = ids[(ids.indexOf(S.music) + 1) % ids.length];
+    save(); stopMusic(); syncMusic(); updateDock();
+    const m = MUSIC.find(x => x.id === S.music); say(`${m.ic} ${m.name}`);
+    document.dispatchEvent(new CustomEvent('mjn-sound'));
+  }
+  function toggleMute() {
+    S.muted = !S.muted; save(); syncMusic(); updateDock();
+    say(S.muted ? '🔇 Suara dibisukan' : '🔊 Suara aktif');
+    document.dispatchEvent(new CustomEvent('mjn-sound'));
+  }
+  let dock = null;
+  function updateDock() {
+    if (!dock) return;
+    const b = dock.querySelector('[data-snd="mute"]');
+    b.textContent = S.muted ? '🔇' : '🔊';
+    b.classList.toggle('on', !!S.muted);
+    b.setAttribute('aria-pressed', S.muted ? 'true' : 'false');
+    b.title = b.ariaLabel = S.muted ? 'Nyalakan suara' : 'Bisukan suara';
+  }
 
   function init() {
     // AudioContext hanya boleh dibuat setelah sentuhan pengguna
@@ -275,9 +309,15 @@ const Sound = (() => {
     document.addEventListener('visibilitychange', () => { if (!ctx) return; if (document.hidden) { stopMusic(); ctx.suspend().catch(() => { }); } else { ctx.resume().catch(() => { }); syncMusic(); } });
     document.addEventListener('click', e => { if (e.target.closest('[data-sound]')) openPanel(); });
     const sync = () => document.querySelectorAll('[data-sound-label]').forEach(el => { el.textContent = label(); });
-    sync(); document.addEventListener('mjn-sound', sync);
+    sync(); document.addEventListener('mjn-sound', () => { sync(); updateDock(); });
+    dock = document.createElement('div');
+    dock.className = 'snd-dock';
+    dock.innerHTML = '<button type="button" data-snd="next" title="Ganti lagu" aria-label="Ganti lagu">⏭</button><button type="button" data-snd="mute"></button>';
+    dock.addEventListener('click', e => { const b = e.target.closest('[data-snd]'); if (!b) return; b.dataset.snd === 'next' ? nextSong() : toggleMute(); });
+    document.body.appendChild(dock); updateDock();
+    refreshTracks();
   }
-  return { init, callout, tile: () => SFX.tile(), dice: () => SFX.dice(), win: () => SFX.win(), openPanel, settings: () => ({ ...S }), MUSIC };
+  return { init, nextSong, toggleMute, callout, tile: () => SFX.tile(), dice: () => SFX.dice(), win: () => SFX.win(), openPanel, settings: () => ({ ...S }), MUSIC };
 })();
 window.Sound = Sound;
 Sound.init();
