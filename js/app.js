@@ -66,6 +66,7 @@
   function setupMode(m) {
     $('#cfg-mode').value = m;
     const watch = m === 'watch';
+    setTimeout(syncPlayGate);
     $('#setup-title').textContent = watch ? 'Simulasi: 4 Bot Bermain' : 'Main melawan Mesin';
     $('#setup-desc').textContent = watch
       ? 'Empat bot bermain dengan kartu terbuka. Aktifkan Log untuk membaca setiap keputusan: ambil, buang, Chow, Pong, Kong, hingga perhitungan fan.'
@@ -74,7 +75,14 @@
     $('#cfg-hint').parentElement.hidden = watch;
     $('#cfg-show').parentElement.hidden = watch;
   }
-  $('#cfg-mode').addEventListener('change', e => setupMode(e.target.value));
+  $('#cfg-mode').addEventListener('change', e => { setupMode(e.target.value); syncPlayGate(); });
+  /* ---------- Main vs Mesin khusus pemain yang login (Simulasi bebas) ---------- */
+  function syncPlayGate() {
+    const locked = $('#cfg-mode').value === 'play' && !Account.canPlay();
+    $('#cfg-login-note').hidden = !locked;
+    $('#cfg-start').textContent = locked ? '🔒 Masuk untuk bermain' : 'Mulai Permainan';
+  }
+  document.addEventListener('mjn-auth', syncPlayGate);
 
   /* ---------- tingkat AI (diingat di perangkat ini) ---------- */
   const LV_KEY = 'mjn-level';
@@ -108,6 +116,7 @@
   syncVariant();
   $('#cfg-start').addEventListener('click', () => {
     const m = $('#cfg-mode').value;
+    if (m === 'play' && !Account.canPlay()) { Account.requireLogin(null, '#play'); return; }
     Game.start({
       mode: m,
       name: $('#cfg-name').value.trim() || 'Kamu',

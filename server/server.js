@@ -318,6 +318,10 @@ function onConnection(conn, user) {
     let m; try { m = JSON.parse(text); } catch { return; }
     if (!m || typeof m !== 'object') return;
     const token = clean(m.token, 64), name = clean(m.name, 14) || 'Pemain';
+    // Main Online khusus pemain yang login Google (kecuali server tanpa login Google, mis. pengembangan lokal)
+    if ((m.t === 'create' || m.t === 'join') && !user && CLIENT_ID) {
+      return conn.send({ t: 'error', code: 'login', msg: 'Masuk dengan Google dulu untuk bermain Online (menu Profil).' });
+    }
     if (m.t === 'create') {
       if (!token) return;
       if (rooms.size >= LIMITS.maxRooms) return conn.send({ t: 'error', msg: 'Server sedang penuh. Coba lagi beberapa saat lagi.' });

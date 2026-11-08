@@ -4,6 +4,9 @@ const Account = (() => {
   const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const QKEY = 'mjn-queue', UKEY = 'mjn-user';   // UKEY: salinan akun agar tetap dikenali saat offline
   let offlineUser = false;                           // true = akun dari salinan lokal (belum dicek server)
+  let serverReached = false;                         // API akun server berhasil dihubungi
+  const RET_KEY = 'mjn-after-login';                 // halaman tujuan setelah login (mis. #play, #online/ABCD)
+  let readyResolve; const readyP = new Promise(r => { readyResolve = r; });
   let user = null, clientId = null, ready = false, gisLoading = null, nudged = false, loadingStats = false, lastFill = '';
   const display = () => (user ? (user.alias || user.given || user.name || 'Pemain') : '');
 
@@ -21,18 +24,40 @@ const Account = (() => {
     if (location.protocol !== 'file:') {
       try {
         const [c, m] = await Promise.all([api('api/config'), api('api/me')]);
-        clientId = c.googleClientId; user = m.user; offlineUser = false; saveUser();
+        clientId = c.googleClientId; user = m.user; offlineUser = false; saveUser(); serverReached = true;
       } catch (e) {
         // tanpa internet (mode pesawat): pakai akun terakhir agar hasil main tetap diantre & dikirim nanti.
         // Server membalas error (mis. hosting statis tanpa API) → mode tamu.
         if (!e.status) { user = readUser(); offlineUser = !!user; }
       }
     }
-    ready = true;
-    renderChip(); prefill(true); flushQueue();
+    ready = true; readyResolve();
+    renderChip(); prefill(true); flushQueue(); emitAuth();
     if (!$('#view-profile').hidden) renderProfile();
   }
   const isLoggedIn = () => !!user;
+  /* ---------- akses bermain: Main vs Mesin & Online khusus pemain yang login Google ----------
+     Belajar, Simulasi Bot & Aturan bebas. Pengecualian: dibuka langsung dari file (tanpa server) atau
+     server yang memang belum mengaktifkan login Google (pengembangan lokal). */
+  const canPlay = () => !!user || location.protocol === 'file:' || (serverReached && !clientId);
+  function emitAuth() {
+    document.documentElement.classList.toggle('guest', !canPlay());
+    document.dispatchEvent(new CustomEvent('mjn-auth', { detail: { user, canPlay: canPlay() } }));
+  }
+  /** ajak login; setelah berhasil, kembali ke `back` (hash halaman) */
+  async function requireLogin(text, back) {
+    const ok = await FX.ask('🔒 Masuk dengan Google untuk bermain', {
+      text: text || 'Main vs Mesin dan Online khusus pemain yang sudah login, agar riwayat, tingkat & badge-mu tersimpan. Belajar dan Simulasi Bot tetap bisa tanpa login.',
+      yes: 'Masuk dengan Google', no: 'Nanti saja' });
+    if (!ok) return false;
+    try { sessionStorage.setItem(RET_KEY, back || location.hash || '#home'); } catch { }
+    location.hash = '#profile';
+    return false;
+  }
+  function goBackAfterLogin() {
+    let back = null; try { back = sessionStorage.getItem(RET_KEY); sessionStorage.removeItem(RET_KEY); } catch { }
+    if (back && back !== '#profile') { location.hash = back; FX.toast('Sudah masuk — silakan lanjut bermain.'); }
+  }
   function renderChip() {
     const el = $('#acct-chip');
     if (!el) return;
@@ -111,21 +136,22 @@ const Account = (() => {
     try {
       const r = await api('api/auth/google', { method: 'POST', body: JSON.stringify({ credential: resp.credential }) });
       user = r.user; offlineUser = false; saveUser();
-      renderChip(); prefill(true); flushQueue(); renderProfile();
+      renderChip(); prefill(true); flushQueue(); renderProfile(); emitAuth();
       if (!user.alias) await askAlias(true);
       FX.toast(`Halo, ${display()}! Riwayat permainanmu sekarang tersimpan.`);
+      goBackAfterLogin();
     } catch (e) { FX.toast(e.message); }
   }
   async function logout() {
     try { await api('api/auth/logout', { method: 'POST' }); } catch { }
     try { if (window.google && google.accounts) google.accounts.id.disableAutoSelect(); } catch { }
-    user = null; saveUser(); renderChip(); renderProfile();
+    user = null; saveUser(); renderChip(); renderProfile(); emitAuth();
     FX.toast('Kamu sudah keluar dari akun.');
   }
   async function deleteAccount() {
     const ok = await FX.ask('Hapus akun & semua riwayat?', { text: 'Profil, statistik, dan seluruh riwayat permainanmu dihapus permanen dari server. Tindakan ini tidak bisa dibatalkan.', yes: 'Hapus permanen', no: 'Batal' });
     if (!ok) return;
-    try { await api('api/me', { method: 'DELETE' }); user = null; saveUser(); localStorage.removeItem(QKEY); renderChip(); renderProfile(); FX.toast('Akun dan riwayatmu sudah dihapus.'); }
+    try { await api('api/me', { method: 'DELETE' }); user = null; saveUser(); localStorage.removeItem(QKEY); renderChip(); renderProfile(); emitAuth(); FX.toast('Akun dan riwayatmu sudah dihapus.'); }
     catch (e) { FX.toast(e.message); }
   }
 
@@ -161,7 +187,7 @@ const Account = (() => {
     if (offlineUser || !clientId) {
       try {
         const [c, m] = await Promise.all([api('api/config'), api('api/me')]);
-        clientId = c.googleClientId; user = m.user; offlineUser = false; saveUser(); renderChip();
+        clientId = c.googleClientId; user = m.user; offlineUser = false; saveUser(); serverReached = true; renderChip(); emitAuth();
       } catch { }
     }
     flushQueue();
@@ -283,14 +309,15 @@ const Account = (() => {
     }
     if (!user) {
       el.innerHTML = `<div class="card pf-login">
-          <p class="eyebrow">Akun pemain</p><h2>Simpan riwayat &amp; evaluasi permainanmu</h2>
+          ${(() => { try { return sessionStorage.getItem(RET_KEY); } catch { return null; } })() ? '<p class="ab-hint warn pf-gate">🔒 Masuk dulu dengan Google — setelah itu kamu langsung dikembalikan ke permainan.</p>' : ''}
+          <p class="eyebrow">Akun pemain</p><h2>Masuk untuk bermain &amp; menyimpan riwayat</h2>
           <ul class="pf-benefits"><li>📊 Statistik: berapa kali menang, kena tembak, rata-rata fan, peringkat</li>
             <li>🧠 Evaluasi setiap keputusan: buangan, klaim, Hu yang terlewat</li>
             <li>💡 Saran perbaikan yang disesuaikan dengan gaya bermainmu</li>
             <li>🗂️ Riwayat setiap sesi Main vs Mesin &amp; Online</li>
             <li>🏅 Tingkat pemain (Pemula → Dewa Mahjong), peringkat global, dan 26 badge pencapaian</li></ul>
           <div id="g-btn" class="g-btn"></div>
-          <p class="muted pf-note">Kami hanya menyimpan nama, email, dan foto profil Google-mu serta data permainan. Tanpa login pun kamu tetap bisa bermain. <a href="privacy.html" target="_blank" rel="noopener">Kebijakan privasi</a></p>
+          <p class="muted pf-note">Main vs Mesin &amp; Online khusus pemain yang login. Tanpa login kamu tetap bisa <a href="#learn">Belajar</a>, menonton <a href="#watch">Simulasi Bot</a>, dan membaca <a href="#rules">Aturan</a>. Kami hanya menyimpan nama, email, dan foto profil Google-mu serta data permainan. <a href="privacy.html" target="_blank" rel="noopener">Kebijakan privasi</a></p>
         </div>`;
       renderGoogleButton($('#g-btn'));
       return;
@@ -300,7 +327,7 @@ const Account = (() => {
     el.innerHTML = `<div class="card"><p class="muted">Memuat statistik ${esc(display())}…</p></div>`;
     let data;
     try { data = await api('api/stats'); }
-    catch (e) { loadingStats = false; if (e.status === 401) { user = null; saveUser(); renderChip(); return renderProfile(); } el.innerHTML = `<div class="card"><p class="on-err">${esc(e.message)}</p></div>`; return; }
+    catch (e) { loadingStats = false; if (e.status === 401) { user = null; saveUser(); renderChip(); emitAuth(); return renderProfile(); } el.innerHTML = `<div class="card"><p class="on-err">${esc(e.message)}</p></div>`; return; }
     loadingStats = false;
     const s = data.summary, t = data.trend;
     const arrow = (now, before, goodUp) => { if (now === before) return ''; const up = now > before; return `<em class="${up === goodUp ? 'plus' : 'minus'}">${up ? '▲' : '▼'}</em>`; };
@@ -342,5 +369,5 @@ const Account = (() => {
     $('#pf-delete').onclick = deleteAccount;
     bindBadges(data.progress);
   }
-  return { init, isLoggedIn, submit, renderProfile, user: () => user, displayName: display };
+  return { init, isLoggedIn, canPlay, requireLogin, ready: () => readyP, submit, renderProfile, user: () => user, displayName: display };
 })();

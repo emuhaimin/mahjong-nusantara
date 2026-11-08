@@ -136,6 +136,8 @@ Catatan: room disimpan di memori, jadi restart layanan menghentikan permainan ya
 
 ## Akun & riwayat (login Google)
 
+- **Akses:** *Main vs Mesin* dan *Online* khusus pemain yang login Google. *Belajar*, *Simulasi Bot*, dan *Aturan & Poin* bebas tanpa login. Server juga menolak membuat/gabung room Online tanpa login (`error: login`). Pengecualian untuk pengembangan: halaman yang dibuka langsung dari file, atau server tanpa `GOOGLE_CLIENT_ID`. Setelah login, pemain dikembalikan ke halaman tujuan (termasuk undangan `#online/KODE`).
+
 - Login memakai **Sign in with Google**: server memverifikasi ID token (tanda tangan Google, audience = Client ID). Tidak ada password yang disimpan.
 - Sesi login: cookie `mjn_sess` (HttpOnly, SameSite=Lax, Secure di HTTPS), 30 hari. Token disimpan di server dalam bentuk hash.
 - Data disimpan di `DATA_DIR` (default `./data`; di VPS otomatis `/var/lib/mahjong-nusantara`). Lihat **Database & backup** di bawah.

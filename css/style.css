@@ -759,3 +759,10 @@ html.is-offline [data-needs-net] h3::after{content:" · butuh internet";font-siz
 .variant-cards small{color:var(--muted);font-size:12px;line-height:1.35}
 @media (max-width:639px){.variant-cards{grid-template-columns:1fr}}
 .variant-cards small b{font-size:inherit;color:var(--ink)}
+
+/* ---------- akses bermain khusus login ---------- */
+.login-note{margin:12px 0}
+.login-note a,.pf-gate a{color:inherit}
+.login-gate{border:2px dashed var(--line);text-align:center;margin:14px 0}
+.login-gate .btn{margin-top:4px}
+html.guest [data-needs-login] h3::after{content:" · 🔒 perlu login";font-size:12px;font-weight:600;color:var(--muted)}
