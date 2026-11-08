@@ -4,7 +4,7 @@ class MjnRecorder {
   constructor(meta) {
     this.rec = {
       v: 1, mode: meta.mode, startedAt: Date.now(), endedAt: null,
-      minFan: meta.minFan, length: meta.length, level: meta.level || null, complete: false,
+      minFan: meta.minFan, length: meta.length, level: meta.level || null, variant: meta.variant || 'hk', complete: false,
       hands: [], rank: null, score: null, opponents: (meta.opponents || []).slice(0, 3),
       d: {
         discards: 0, hintSame: 0, worse: 0, autoMoves: 0,

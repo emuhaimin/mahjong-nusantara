@@ -44,7 +44,22 @@
         <ul><li><b>Zimo</b>: tiap lawan membayar 1 × poin dasar.</li><li><b>Dari buangan</b>: pembuang membayar 2 × poin dasar.</li><li>Setiap pemain mulai dengan 500 poin.</li></ul></section>
       <section class="card"><h2>7. Pergantian dealer & ronde</h2><ul>
         <li>Dealer menang atau seri → dealer tetap.</li><li>Pemain lain menang → dealer pindah ke kanan.</li>
-        <li>Setelah keempat pemain menjadi dealer, angin ronde berganti (Timur → Selatan → Barat → Utara).</li></ul></section>`;
+        <li>Setelah keempat pemain menjadi dealer, angin ronde berganti (Timur → Selatan → Barat → Utara).</li></ul></section>
+      <section class="card" id="rules-tw"><p class="eyebrow">Varian</p><h2>Taiwan 16 kartu <span class="zh muted">台灣16張</span></h2>
+        <ul><li>144 kartu termasuk bunga. Tiap pemain memegang <b>16 kartu</b> (dealer 17); menang = <b>5 set + 1 pasang</b> (17 kartu). Tidak ada Tujuh Pasang.</li>
+          <li>Tidak ada minimal: tangan tanpa tai tetap sah. Bayar = <b>dasar 30 + tai × 10</b>. Pembuang membayar sendiri; Zimo dibayar ketiga lawan.</li>
+          <li><b>Dealer (莊家)</b> menambah 1 tai pada pembayaran yang melibatkan dealer, +2 tai lagi tiap kali dealer lanjut (連莊).</li></ul>
+        <table class="tbl"><thead><tr><th>Pola</th><th>Tai</th></tr></thead><tbody>
+          ${[['Tangan Tertutup (門清)', 1], ['Zimo (自摸)', 1], ['Tertutup + Zimo (門清自摸)', 3], ['Semua Chow — tanpa huruf/bunga, tunggu dua sisi (平胡)', 2], ['Semua Minta, menang dari buangan (全求人)', 2], ['Tunggu Tunggal (獨聽)', 1], ['Kartu Terakhir / Buangan Terakhir / Menang dari Kong', 1], ['Bunga Kursi Sendiri (正花), tiap kartu', 1], ['Satu Set Bunga atau Musim (花槓)', 2], ['Pong Naga, tiap set (三元牌)', 1], ['Pong Angin Kursi / Angin Ronde', 1], ['Tiga Pong Tertutup / Empat / Lima (暗刻)', '2 / 5 / 8'], ['Semua Pong (碰碰胡)', 4], ['Satu Warna Campur (混一色)', 4], ['Tiga Naga Kecil / Besar (小/大三元)', '4 / 8'], ['Satu Warna Murni (清一色)', 8], ['Delapan Bunga (八仙過海)', 8], ['Empat Angin Kecil / Besar (小/大四喜)', '8 / 16'], ['Semua Huruf (字一色)', 16], ['Menang Surga (天胡)', 24]].map(([n, t]) => `<tr><td>${n}</td><td class="num">${t}</td></tr>`).join('')}</tbody></table></section>
+      <section class="card" id="rules-jp"><p class="eyebrow">Varian</p><h2>Jepang — Riichi <span class="zh muted">立直麻雀</span></h2>
+        <ul><li>136 kartu, <b>tanpa bunga</b>; satu lima merah (赤) di tiap suit = +1 han dora. Skor awal 25.000.</li>
+          <li>Menang <b>wajib punya minimal 1 yaku</b>. Dora (kartu setelah indikator di dead wall) menambah han tetapi bukan yaku.</li>
+          <li><b>Riichi</b>: tangan tertutup & Ting → bayar tongkat 1000, +1 han, ura-dora dibuka saat menang. Setelah riichi tangan terkunci.</li>
+          <li><b>Furiten</b>: bila salah satu kartu tunggumu pernah kamu buang (atau kamu melewatkan Ron), kamu hanya boleh menang Tsumo.</li>
+          <li>Skor = <b>han & fu</b> → poin dasar fu × 2<sup>han+2</sup>; Mangan (5 han) 8000, Haneman 12000, Baiman 16000, Sanbaiman 24000, Yakuman 32000 (dealer ×1,5). Honba +300 per hand lanjutan.</li>
+          <li>Seri karena tembok habis: pemain yang Ting menerima total 3000 dari yang tidak Ting. Dealer lanjut bila menang atau Ting.</li></ul>
+        <table class="tbl"><thead><tr><th>Yaku</th><th>Han (tertutup / terbuka)</th></tr></thead><tbody>
+          ${[['Riichi · Ippatsu · Menzen Tsumo · Pinfu · Iipeikou', '1 / —'], ['Tanyao (semua 2–8) · Yakuhai (Pong naga / angin kursi / angin ronde) · Haitei · Houtei · Rinshan', '1 / 1'], ['Sanshoku · Ittsu · Chanta', '2 / 1'], ['Chiitoitsu (7 pasang) · Double Riichi', '2 / —'], ['Toitoi · Sanankou · Sanshoku Doukou · Sankantsu · Honroutou · Shousangen', '2 / 2'], ['Honitsu (satu warna + huruf) · Junchan', '3 / 2'], ['Ryanpeikou', '3 / —'], ['Chinitsu (satu warna murni)', '6 / 5'], ['Yakuman: Kokushi, Suuankou, Daisangen, Shousuushii, Daisuushii, Tsuuiisou, Chinroutou, Ryuuiisou, Chuuren, Suukantsu, Tenhou', '13']].map(([n, t]) => `<tr><td>${n}</td><td class="num">${t}</td></tr>`).join('')}</tbody></table></section>`;
   }
 
   /* ---------- pengaturan permainan ---------- */
@@ -75,6 +90,22 @@
   const lvDesc = () => { $('#cfg-level-desc').textContent = LV_DESC[lvSel.value] || ''; };
   lvSel.addEventListener('change', () => { lvDesc(); try { localStorage.setItem(LV_KEY, lvSel.value); } catch { } });
   lvDesc();
+  /* ---------- jenis mahjong (diingat di perangkat ini) ---------- */
+  const VAR_KEY = 'mjn-variant';
+  const varVal = () => (document.querySelector('input[name="cfg-variant"]:checked') || {}).value || 'hk';
+  function syncVariant() {
+    const V = MJN_VARIANTS[varVal()];
+    const mf = $('#cfg-minfan');
+    mf.innerHTML = V.minOptions.map(([v, t]) => `<option value="${v}"${v === V.defaultMin ? ' selected' : ''}>${t}</option>`).join('');
+    mf.disabled = V.minOptions.length < 2;
+    mf.parentElement.firstChild.textContent = V.id === 'hk' ? 'Minimal fan untuk menang' : V.id === 'tw' ? 'Minimal tai' : 'Syarat menang';
+    const len = $('#cfg-length');
+    len.options[1].textContent = V.id === 'jp' ? 'Tonpuusen — ronde Timur (min. 4 hand)' : '1 ronde angin (min. 4 hand)';
+    len.options[2].textContent = V.id === 'jp' ? 'Hanchan — Timur + Selatan (min. 8 hand)' : '4 ronde angin (penuh)';
+  }
+  try { const v = localStorage.getItem(VAR_KEY); const r = v && document.querySelector(`input[name="cfg-variant"][value="${v}"]`); if (r) r.checked = true; } catch { }
+  document.querySelectorAll('input[name="cfg-variant"]').forEach(r => r.addEventListener('change', () => { syncVariant(); try { localStorage.setItem(VAR_KEY, varVal()); } catch { } }));
+  syncVariant();
   $('#cfg-start').addEventListener('click', () => {
     const m = $('#cfg-mode').value;
     Game.start({
@@ -86,6 +117,7 @@
       hint: $('#cfg-hint').checked,
       showHands: $('#cfg-show').checked,
       level: lvSel.value,
+      variant: varVal(),
     });
     if (m === 'watch') $('#log').hidden = false;
   });

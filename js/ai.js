@@ -5,6 +5,8 @@
      minFan()    → minimal fan meja
      seatWind(p) → angin kursi 0..3
      levelOf(p)  → 'easy' | 'medium' | 'hard' | 'expert'
+     sets()      → (opsional) jumlah set untuk menang: 4 (HK/Riichi) atau 5 (Taiwan 16 kartu)
+     variant()   → (opsional) 'hk' | 'tw' | 'jp'. Di 'jp' bot paham yaku, riichi, & furiten (kartu buangan lawan riichi = aman)
    } */
 function createMjnAI(env) {
   const st = env.state;
@@ -12,6 +14,9 @@ function createMjnAI(env) {
   const kindsOf = pl => pl.hand.map(t => t.k);
   const seatWind = p => env.seatWind(p);
   const isValue = (p, k) => k >= 31 || k === 27 + seatWind(p) || k === 27 + st().roundWind;
+  const S = () => (env.sets ? env.sets() : 4);
+  const VAR = () => (env.variant ? env.variant() : 'hk');
+  const sh = (c, open) => shantenAll(c, open, S());
 
   function visibleCounts() {
     const v = new Array(34).fill(0);
@@ -29,6 +34,20 @@ function createMjnAI(env) {
     if (pl.melds.some(m => m.k < 27 && Math.floor(m.k / 9) !== best)) return null;
     if (per[best] >= 7 && per[best] + hon >= ks.length - 3) return best;
     return null;
+  }
+  /** Riichi: apakah tangan masih punya jalan ke yaku setelah (opsional) mengklaim kartu k
+      (Pong yakuhai, atau Tanyao: semua kartu sederhana 2–8). Tangan tertutup selalu bisa riichi. */
+  function jpYakuPath(p, k, claimTiles) {
+    const pl = st().players[p];
+    if (!claimTiles && pl.melds.every(m => m.concealed)) return true;
+    const has = pl.melds.some(m => m.type !== 'chow' && isValue(p, m.k)) || (claimTiles && claimTiles.length === 2 && claimTiles[0] === k && isValue(p, k));
+    if (has) return true;
+    const c = toCounts(kindsOf(pl)); for (let x = 27; x < 34; x++) if (c[x] >= 2 && isValue(p, x)) return true;   // pasangan yakuhai calon Pong
+    const simple = x => x < 27 && x % 9 !== 0 && x % 9 !== 8;
+    const tiles = kindsOf(pl).filter(x => !(claimTiles || []).includes(x)).concat(claimTiles || []);
+    pl.melds.forEach(m => tiles.push(...meldTiles(m)));
+    const bad = tiles.filter(x => !simple(x)).length;
+    return pl.melds.every(m => meldTiles(m).every(simple)) && (claimTiles || []).every(simple) && bad <= 2;
   }
   function fanEstimate(p, extraPongK) {
     const pl = st().players[p]; let f = 0;
@@ -54,6 +73,7 @@ function createMjnAI(env) {
   /** seberapa besar kemungkinan lawan q sudah Ting (0–1), dari Pong/Chow terbuka & sisa tembok */
   function threatOf(q) {
     const pl = st().players[q], m = pl.melds.filter(x => !x.concealed).length, w = st().wallLeft, n = pl.discards.length;
+    if (pl.riichi) return 1;                    // Riichi: pasti sudah Ting
     let t = m >= 3 ? .85 : m === 2 ? .5 : m === 1 ? .25 : .1;
     if (n >= 6) t += .15;                       // makin lama bermain, makin mungkin sudah Ting
     if (n >= 10) t += .2;
@@ -70,6 +90,8 @@ function createMjnAI(env) {
   /** risiko membuang kartu k ke lawan q (≈0 aman … 1+ berbahaya) */
   function dangerTo(q, k, left) {
     if (left <= 0) return 0.05;                 // semua lembar sudah terlihat → hampir pasti aman
+    // Riichi: kartu yang pernah dibuang lawan sendiri 100% aman (furiten — lawan tidak boleh Ron dengannya)
+    if (VAR() === 'jp' && (st().players[q].discardKinds || []).includes(k)) return 0;
     // kartu ini sudah dibuang orang lain SETELAH giliran terakhir q dan q tidak Hu → tangan q belum berubah, jadi aman
     const ls = st().players[q].lastSeq || 0;
     if (st().hist.some(h => h.k === k && h.seq > ls && h.p !== q)) return 0.02;
@@ -106,7 +128,7 @@ function createMjnAI(env) {
       const pl = st().players[p], L = LEVELS[level] || lvOf(p);
       const c = toCounts(kindsOf(pl)), open = pl.melds.length, vis = visibleCounts();
       const fl = env.minFan() >= 2 || Math.random() < L.flush ? flushTarget(pl) : null;
-      const all = [...new Set(kindsOf(pl))].map(k => { c[k]--; const s = shantenAll(c, open); c[k]++; return { k, s }; });
+      const all = [...new Set(kindsOf(pl))].map(k => { c[k]--; const s = sh(c, open); c[k]++; return { k, s }; });
       const minS = Math.min(...all.map(x => x.s));
       const choose = k => {
         const t = pl.hand.find(t => t.k === k && t.id === pl.drawn) || pl.hand.find(t => t.k === k);
@@ -130,7 +152,7 @@ function createMjnAI(env) {
             const left = 4 - c[y] - vis[y];
             if (left <= 0) continue;
             c[y]++;
-            if (shantenAll(c, open) < x.s) u += left;
+            if (sh(c, open) < x.s) u += left;
             c[y]--;
           }
           c[x.k]++;
@@ -147,6 +169,8 @@ function createMjnAI(env) {
       cands.sort((a, b) => b.score - a.score);
       return choose(cands[0].k);
     },
+    /** Riichi: deklarasi riichi? (tangan tertutup, Ting setelah buangan) — Easy 50%, lainnya selalu */
+    wantRiichi(p) { return lvOf(p) === LEVELS.easy ? Math.random() < .5 : true; },
     turn(p, win, kongs) {
       if (win && !win.insufficient) return { type: 'tsumo' };
       const pl = st().players[p], L = lvOf(p);
@@ -154,15 +178,23 @@ function createMjnAI(env) {
       for (const o of kongs) {
         if (o.kind === 'add') return { type: 'kong', k: o.k };
         const c = toCounts(kindsOf(pl));
-        const before = shantenAll(c, pl.melds.length);
+        const before = sh(c, pl.melds.length);
         c[o.k] -= 4;
-        if (shantenAll(c, pl.melds.length + 1) <= before) return { type: 'kong', k: o.k };
+        if (sh(c, pl.melds.length + 1) <= before) return { type: 'kong', k: o.k };
       }
       return { type: 'discard', id: AI.evalDiscard(p).id };
     },
     claim(p, tile, o, level) {
       if (o.win) return { type: 'win' };
       const L = LEVELS[level] || lvOf(p);
+      if (VAR() === 'jp') {                    // Riichi: tak boleh klaim setelah riichi; buka tangan hanya bila masih ada jalan ke yaku
+        const me = st().players[p];
+        if (me.riichi) return null;
+        const okP = jpYakuPath(p, tile.k, [tile.k, tile.k]);
+        if (!okP) o = { ...o, pong: false, kong: false };
+        if (o.chows.length) o = { ...o, chows: o.chows.filter(s0 => jpYakuPath(p, tile.k, [s0, s0 + 1, s0 + 2].filter(x => x !== tile.k))) };
+        if (!o.pong && !o.kong && !o.chows.length) return null;
+      }
       if (L === LEVELS.easy) {                 // Easy: klaim karena “kelihatannya bagus”, tanpa menghitung fan
         const ok = env.minFan() === 0 || fanEstimate(p, tile.k) >= env.minFan() || isValue(p, tile.k);
         if (o.kong && ok) return { type: 'kong' };
@@ -172,12 +204,12 @@ function createMjnAI(env) {
       }
       const pl = st().players[p], k = tile.k, open = pl.melds.length;
       const c = toCounts(kindsOf(pl));
-      const cur = shantenAll(c, open);
+      const cur = sh(c, open);
       const val = isValue(p, k);
       const after = rm => {
         rm.forEach(x => c[x]--);
         let best = 99;
-        for (let x = 0; x < 34; x++) if (c[x] > 0) { c[x]--; const s = shantenAll(c, open + 1); if (s < best) best = s; c[x]++; }
+        for (let x = 0; x < 34; x++) if (c[x] > 0) { c[x]--; const s = sh(c, open + 1); if (s < best) best = s; c[x]++; }
         rm.forEach(x => c[x]++);
         return best;
       };
@@ -186,7 +218,7 @@ function createMjnAI(env) {
       if (L.defense && cur >= 2 && [0, 1, 2, 3].some(q => q !== p && threatOf(q) >= .6)) return null;  // Expert: lawan hampir Hu, jangan buka tangan
       const okFan = extra => env.minFan() === 0 || fanEstimate(p, extra) >= env.minFan();
       if (o.kong) {
-        c[k] -= 3; const s = shantenAll(c, open + 1); c[k] += 3;
+        c[k] -= 3; const s = sh(c, open + 1); c[k] += 3;
         if (s <= cur && fits && okFan(k)) return { type: 'kong' };
       }
       if (o.pong) {
@@ -207,14 +239,15 @@ function createMjnAI(env) {
   };
 
   /* ---------- riwayat buangan (untuk membaca kartu aman) ---------- */
-  function newHand() { const s = st(); s.hist.length = 0; s.players.forEach(pl => { pl.lastSeq = 0; }); }
+  function newHand() { const s = st(); s.hist.length = 0; s.players.forEach(pl => { pl.lastSeq = 0; pl.discardKinds = []; }); }
   function noteDiscard(p, k) {
     const s = st(), seq = (s.hist.length ? s.hist[s.hist.length - 1].seq : 0) + 1;
     s.hist.push({ k, seq, p });
     s.players[p].lastSeq = seq;
+    (s.players[p].discardKinds || (s.players[p].discardKinds = [])).push(k);   // semua buangan sendiri (juga yang diklaim) — untuk furiten
   }
 
-  return { LEVELS, evalDiscard: AI.evalDiscard, turn: AI.turn, claim: AI.claim, newHand, noteDiscard };
+  return { LEVELS, evalDiscard: AI.evalDiscard, turn: AI.turn, claim: AI.claim, wantRiichi: AI.wantRiichi, newHand, noteDiscard };
 }
 const MJN_LEVELS = ['easy', 'medium', 'hard', 'expert'];
 if (typeof module !== 'undefined') module.exports = { createMjnAI, MJN_LEVELS };

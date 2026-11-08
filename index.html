@@ -88,6 +88,13 @@
       <h2 id="setup-title">Main melawan Mesin</h2>
       <p class="muted" id="setup-desc">Kamu duduk di bawah, tiga bot di kanan, atas, dan kiri. Giliran berjalan berlawanan arah jarum jam.</p>
       <div class="form-grid">
+        <fieldset class="variant-pick" style="grid-column:1/-1;border:0;padding:0;margin:0"><legend style="font-weight:600;font-size:14px;margin-bottom:6px">Jenis mahjong</legend>
+          <div class="variant-cards">
+            <label><input type="radio" name="cfg-variant" value="hk" checked><b>Hong Kong <span class="zh">廣東</span></b><small>144 kartu + bunga · 13 kartu · skor fan. Paling umum di Indonesia.</small></label>
+            <label><input type="radio" name="cfg-variant" value="tw"><b>Taiwan <span class="zh">台灣16張</span></b><small>144 kartu + bunga · <b>16 kartu</b> (5 set + 1 pasang) · skor tai, dealer +tai.</small></label>
+            <label><input type="radio" name="cfg-variant" value="jp"><b>Jepang · Riichi <span class="zh">立直</span></b><small>136 kartu tanpa bunga · wajib yaku · riichi, dora, furiten · skor han/fu.</small></label>
+          </div>
+        </fieldset>
         <label>Mode
           <select id="cfg-mode">
             <option value="play">Saya bermain vs 3 bot</option>
@@ -261,6 +268,7 @@
 <script src="js/rules.js"></script>
 <script src="js/fx.js"></script>
 <script src="js/record.js"></script>
+<script src="js/variants.js"></script>
 <script src="js/ai.js"></script>
 <script src="js/game.js"></script>
 <script src="js/learn.js"></script>

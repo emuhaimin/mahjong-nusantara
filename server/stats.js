@@ -27,6 +27,7 @@ function sanitizeRecord(r) {
     v: 1, mode: 'bot', startedAt: num(r.startedAt, 0, 4e12), endedAt: num(r.endedAt, 0, 4e12),
     minFan: num(r.minFan, 0, 13), length: ['one', 'east', 'full'].includes(r.length) ? r.length : 'east', complete: !!r.complete,
     level: ['easy', 'medium', 'hard', 'expert', 'mix'].includes(r.level) ? r.level : null,
+    variant: ['hk', 'tw', 'jp'].includes(r.variant) ? r.variant : 'hk',
     hands, rank: r.rank == null ? null : num(r.rank, 1, 4), score: num(r.score, -100000, 100000),
     opponents: Array.isArray(r.opponents) ? r.opponents.slice(0, 3).map(x => str(x, 20)) : [],
     d: {
