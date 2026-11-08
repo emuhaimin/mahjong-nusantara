@@ -1,7 +1,8 @@
 # Deploy otomatis ke VPS setiap ada push / merge ke main.
-# Butuh 2 repository secret (Settings → Secrets and variables → Actions):
+# Butuh 2 repository secret (Settings → Secrets and variables → Actions) — plus 1 opsional:
 #   VPS_HOST    = alamat IP VPS (mis. 187.77.115.96)
 #   VPS_SSH_KEY = kunci privat SSH yang kunci publiknya ada di ~/.ssh/authorized_keys milik root di VPS
+#   ANTHROPIC_API_KEY (opsional) = kunci API Anthropic untuk fitur scan foto kartu (Alat Meja)
 # Di VPS, /root/mahjong-nusantara harus hasil `git clone` repo ini (lihat README).
 name: Deploy ke VPS
 
@@ -35,6 +36,19 @@ jobs:
           printf '%s\n' "$VPS_SSH_KEY" | tr -d '\r' > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
           ssh-keyscan -T 20 -H "$VPS_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Pasang kunci API scan foto (opsional)
+        # Secret ANTHROPIC_API_KEY (Settings → Secrets and variables → Actions) ditulis ke
+        # /etc/mahjong-nusantara.env di VPS (izin 600). Dikirim lewat stdin SSH, tidak tampil di log.
+        # Bila secret kosong, file di VPS tidak diubah.
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          if [ -z "$ANTHROPIC_API_KEY" ]; then echo "Secret ANTHROPIC_API_KEY tidak diatur — scan foto tetap seperti sebelumnya."; exit 0; fi
+          case "$ANTHROPIC_API_KEY" in sk-ant-*) ;; *) echo "::error::ANTHROPIC_API_KEY harus diawali sk-ant-"; exit 1;; esac
+          printf '%s\n' "$ANTHROPIC_API_KEY" | tr -d '\r' | ssh -i ~/.ssh/deploy_key -o BatchMode=yes -o ConnectTimeout=20 "root@$VPS_HOST" \
+            'set -eu; umask 077; f=/etc/mahjong-nusantara.env; IFS= read -r k; touch "$f"; grep -v "^ANTHROPIC_API_KEY=" "$f" > "$f.tmp" || true; printf "ANTHROPIC_API_KEY=%s\n" "$k" >> "$f.tmp"; mv "$f.tmp" "$f"; chmod 600 "$f"; echo "Kunci scan foto terpasang di $f"'
 
       - name: Tarik kode terbaru & pasang di VPS
         env:
