@@ -126,9 +126,28 @@ Catatan: room disimpan di memori, jadi restart layanan menghentikan permainan ya
 
 - Login memakai **Sign in with Google**: server memverifikasi ID token (tanda tangan Google, audience = Client ID). Tidak ada password yang disimpan.
 - Sesi login: cookie `mjn_sess` (HttpOnly, SameSite=Lax, Secure di HTTPS), 30 hari. Token disimpan di server dalam bentuk hash.
-- Data disimpan di `DATA_DIR` (default `./data`; di VPS otomatis `/var/lib/mahjong-nusantara`): `users.json`, `sessions.json`, `games/<id>.jsonl`.
+- Data disimpan di `DATA_DIR` (default `./data`; di VPS otomatis `/var/lib/mahjong-nusantara`). Lihat **Database & backup** di bawah.
 - Yang direkam per sesi (Main vs Mesin & Online, hanya jika login): hasil tiap hand, fan, skor, peringkat, dan evaluasi keputusan (buangan vs saran mesin, klaim, Hu terlewat, kena tembak).
 - Halaman **Profil**: statistik, tren, saran perbaikan, riwayat sesi, dan tombol hapus akun.
+
+### Database & backup
+
+- **SQLite** (`DATA_DIR/mahjong.db`, mode WAL) memakai modul bawaan Node `node:sqlite` — tanpa paket npm. Butuh **Node 22.13+**; `deploy/install.sh` otomatis menaikkan Node di VPS ke 24 LTS.
+  Tabel: `users` (profil Google + alias), `sessions` (hash token login, 30 hari), `games` (satu baris per sesi permainan; kolom mode/level/length/complete/rank + data lengkap JSON).
+- **Pindahan otomatis:** saat `mahjong.db` belum ada dan masih ada data lama berbasis file (`users.json`, `sessions.json`, `games/*.jsonl`), semuanya dipindahkan ke SQLite saat server menyala. File lama tidak dihapus, hanya digeser ke `DATA_DIR/legacy-json/`. Sesi login ikut pindah, jadi pemain tidak perlu login ulang.
+- **Cadangan:** bila Node terlalu lama (`node:sqlite` tidak ada) atau `STORE=file`, server tetap jalan dengan penyimpanan file lama (`server/store.js`).
+- **Backup harian otomatis** (`server/backup.js`): dicek tiap jam dan saat server menyala; bila backup terakhir sudah lebih dari 20 jam, dibuat salinan konsisten (`VACUUM INTO`) yang dikompres → `DATA_DIR/backups/mahjong-YYYY-MM-DD_HHMM.db.gz`. Hanya **14 backup terakhir** disimpan. Ubah dengan `BACKUP_DIR=…` / `BACKUP_KEEP=…` di `/etc/mahjong-nusantara.env`.
+  Backup ada di disk VPS yang sama — untuk keamanan ekstra, sesekali unduh salinannya ke komputer lain (`scp root@VPS:/var/lib/mahjong-nusantara/backups/*.db.gz .`).
+
+**Memulihkan dari backup** (di VPS, sebagai root):
+```bash
+systemctl stop mahjong
+cd /var/lib/mahjong-nusantara
+mv mahjong.db mahjong.db.rusak-$(date +%F); rm -f mahjong.db-wal mahjong.db-shm
+gunzip -c backups/mahjong-2026-11-08_0300.db.gz > mahjong.db   # pilih file backup yang diinginkan
+chown mahjong:mahjong mahjong.db && chmod 600 mahjong.db
+systemctl start mahjong
+```
 
 **Mengaktifkan login Google**
 1. Google Cloud Console → buat proyek → *APIs & Services* → *OAuth consent screen* (External, isi nama aplikasi, email dukungan, domain `rupaone.io`, privacy policy `https://mahjong.rupaone.io/privacy.html`) → Publish.
