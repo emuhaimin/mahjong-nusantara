@@ -12,6 +12,7 @@ const { Room } = require('./engine');
 const { Store } = require('./store');
 const { SqliteStore, loadSqlite } = require('./store-sqlite');
 const { startBackups } = require('./backup');
+const { scanTiles, scanEnabled } = require('./scan');
 const { verifyGoogleIdToken } = require('./auth');
 const { summarize, sanitizeRecord } = require('./stats');
 const { mjnComputeRp, mjnRankFromRp, mjnBadges } = require('../js/progress');
@@ -128,7 +129,20 @@ async function handleApi(req, res, url) {
   const user = store.userBySession(tok);
   const ip = clientIp(req);
   try {
-    if (url === '/api/config' && m === 'GET') return send(200, { googleClientId: CLIENT_ID || null });
+    if (url === '/api/config' && m === 'GET') return send(200, { googleClientId: CLIENT_ID || null, scan: scanEnabled() });
+    // Scan foto kartu menang → daftar kartu (Claude API). Wajib login bila login Google aktif; dibatasi per jam.
+    if (url === '/api/scan' && m === 'POST') {
+      if (!scanEnabled()) return send(503, { error: 'Scan foto belum diaktifkan di server ini.', code: 'noscan' });
+      if (CLIENT_ID && !user) return send(401, { error: 'Masuk dengan Google dulu untuk memakai scan foto.', code: 'login' });
+      if (limited('scan:' + (user ? user.id : ip), 30, 3600000)) return send(429, { error: 'Batas scan tercapai (30 per jam). Coba lagi nanti.' });
+      let body;
+      try { body = await readJson(req, 8 * 1024 * 1024); } catch { return send(413, { error: 'Foto terlalu besar (maks. 8 MB).' }); }
+      const media = ['image/jpeg', 'image/png', 'image/webp'].includes(body.media) ? body.media : 'image/jpeg';
+      const img = typeof body.image === 'string' ? body.image.replace(/^data:[^,]*,/, '') : '';
+      if (img.length < 200 || !/^[A-Za-z0-9+/=]+$/.test(img)) return send(400, { error: 'Foto tidak valid.' });
+      try { return send(200, await scanTiles(img, media)); }
+      catch (e) { return send(e.status || 500, { error: e.message || 'Scan gagal.', code: e.code }); }
+    }
     if (url === '/api/me' && m === 'GET') return send(200, { user: publicUser(user) });
     if (url === '/api/auth/google' && m === 'POST') {
       if (limited('auth:' + ip, 20, 600000)) return send(429, { error: 'Terlalu banyak percobaan. Coba lagi nanti.' });
