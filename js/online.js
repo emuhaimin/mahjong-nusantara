@@ -84,6 +84,7 @@ const Online = (() => {
       status('');
     } else if (m.t === 'error') {
       if (m.code === 'noroom') { save({ code: null }); S = null; render(); }
+      if (m.code === 'login') { save({ code: null }); S = null; render(); }
       status(m.msg, true);
     } else if (m.t === 'left') {
       save({ code: null }); S = null; closeModal(); render();
@@ -105,8 +106,18 @@ const Online = (() => {
   }
 
   /* ---------------- tampilan ---------------- */
+  /* ---------- Online khusus pemain yang login Google ---------- */
+  const locked = () => typeof Account !== 'undefined' && !Account.canPlay();
+  function syncGate() {
+    const lk = locked();
+    $('#on-login-gate').hidden = !lk;
+    document.querySelectorAll('#on-lobby .on-grid, #on-lobby label.form-grid').forEach(el => { el.hidden = lk; });
+    const code = invitedTo || ($('#on-code').value || '').trim().toUpperCase();
+    $('#on-gate-invite').innerHTML = lk && /^[A-Z]{4}$/.test(code) ? `Setelah masuk, kamu langsung bergabung ke room <b>${esc(code)}</b>.` : '';
+  }
   function render() {
     if (!active) return;
+    syncGate();
     const inRoom = !!S && load().code;
     $('#on-lobby').hidden = !!inRoom;
     $('#on-room').hidden = !(inRoom && S.phase === 'lobby');
@@ -328,6 +339,7 @@ const Online = (() => {
     history.replaceState(null, '', '#online');
   }
   function create() {
+    if (locked()) return Account.requireLogin(null, '#online');
     const name = myName();
     save({ name });
     status('Membuat room…');
@@ -337,6 +349,7 @@ const Online = (() => {
     code = (code || $('#on-code').value).trim().toUpperCase();
     leftCode = null; invitedTo = null;
     if (!/^[A-Z]{4}$/.test(code)) return status('Kode room harus 4 huruf.', true);
+    if (locked()) return Account.requireLogin(null, '#online/' + code);
     const name = myName();
     save({ name, code });
     status('Menghubungkan…');
@@ -346,6 +359,13 @@ const Online = (() => {
   function init() {
     $('#on-name').value = load().name || '';
     $('#on-create').onclick = create;
+    $('#on-login-btn').onclick = () => Account.requireLogin(null, invitedTo ? '#online/' + invitedTo : '#online');
+    // status login berubah → koneksi WebSocket dibuka ulang agar server mengenali akun (cookie) yang baru
+    document.addEventListener('mjn-auth', () => {
+      if (ws) { ws.onclose = null; try { ws.close(); } catch { } ws = null; }
+      if (active || load().code) connect();
+      render();
+    });
     $('#on-join').onclick = () => join();
     $('#on-code').addEventListener('keydown', e => { if (e.key === 'Enter') join(); });
     $('#on-start').onclick = () => send({ t: 'start' });
@@ -424,7 +444,8 @@ const Online = (() => {
       $('#on-code').value = code;
       const o = load();
       if (o.code !== code) {
-        if (code === leftCode) status(`Kamu sudah keluar dari room ${code}. Tekan Gabung jika ingin masuk lagi.`);
+        if (locked()) { invitedTo = code; status(`👋 Kamu diundang ke room ${code}. Masuk dengan Google dulu, lalu kamu langsung bergabung.`); }
+        else if (code === leftCode) status(`Kamu sudah keluar dari room ${code}. Tekan Gabung jika ingin masuk lagi.`);
         else if (o.name || $('#on-name').value.trim()) join(code);
         else {
           invitedTo = code;

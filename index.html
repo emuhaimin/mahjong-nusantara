@@ -52,8 +52,8 @@
     </div>
     <div class="cards">
       <a class="card link" href="#learn"><span class="card-ic">📘</span><h3>Belajar dari Nol</h3><p>17 langkah: kenal kartu, tentukan dealer, kocok, susun &amp; pecah tembok, bagi kartu, klaim, menang, hitung fan.</p></a>
-      <a class="card link" href="#play"><span class="card-ic">🀄</span><h3>Main vs Mesin</h3><p>Kamu melawan 3 bot AI — pilih tingkat Easy, Medium, Hard, atau Expert. Ada saran langkah dan info “Ting”.</p></a>
-      <a class="card link" href="#online" data-needs-net><span class="card-ic">🌐</span><h3>Main Online</h3><p>Buat room, bagikan kode ke teman, main bareng dari HP atau laptop. Kursi kosong diisi bot.</p></a>
+      <a class="card link" href="#play" data-needs-login><span class="card-ic">🀄</span><h3>Main vs Mesin</h3><p>Kamu melawan 3 bot AI — pilih tingkat Easy, Medium, Hard, atau Expert. Ada saran langkah dan info “Ting”.</p></a>
+      <a class="card link" href="#online" data-needs-net data-needs-login><span class="card-ic">🌐</span><h3>Main Online</h3><p>Buat room, bagikan kode ke teman, main bareng dari HP atau laptop. Kursi kosong diisi bot.</p></a>
       <a class="card link" href="#watch"><span class="card-ic">🤖</span><h3>Simulasi Bot</h3><p>Tonton 4 bot bermain dengan kartu terbuka. Atur kecepatan dan baca log tiap langkah.</p></a>
       <a class="card link" href="#rules"><span class="card-ic">🧮</span><h3>Aturan &amp; Poin</h3><p>Tabel fan, tabel poin, cara bayar, dan pergantian dealer dalam satu halaman ringkas.</p></a>
     </div>
@@ -139,6 +139,7 @@
           <label class="chk"><input type="checkbox" id="cfg-show"> Tampilkan kartu bot</label>
         </div>
       </div>
+      <p class="ab-hint warn login-note" id="cfg-login-note" hidden>🔒 <b>Main vs Mesin khusus pemain yang login dengan Google</b> — supaya riwayat, tingkat &amp; badge-mu tersimpan. Tanpa login kamu tetap bisa menonton <b>Simulasi Bot</b> (pilih di “Mode”) dan <a href="#learn">Belajar</a>.</p>
       <button class="btn big" id="cfg-start">Mulai Permainan</button>
     </div>
 
@@ -180,6 +181,12 @@
       <p class="muted">Buat room lalu bagikan kodenya, atau masukkan kode dari temanmu. Kursi yang kosong saat permainan dimulai akan diisi bot — dan teman yang datang belakangan bisa menggantikan bot itu.</p>
       <div id="on-noserver" class="ab-hint warn" hidden style="color:#fff;margin:10px 0"></div>
       <label class="form-grid" style="grid-template-columns:1fr;margin:14px 0 4px"><span style="font-weight:600;font-size:14px">Nama kamu</span><input id="on-name" maxlength="14" placeholder="mis. Rina"></label>
+      <div class="card login-gate" id="on-login-gate" hidden>
+        <h3>🔒 Masuk dengan Google untuk main Online</h3>
+        <p class="muted">Main Online khusus pemain yang sudah login — supaya lawanmu pemain sungguhan dan hasilmu tercatat di riwayat, tingkat &amp; peringkat. <span id="on-gate-invite"></span></p>
+        <button class="btn big" id="on-login-btn">Masuk dengan Google</button>
+        <p class="muted" style="margin-top:10px">Tanpa login kamu tetap bisa <a href="#learn">Belajar</a> dan menonton <a href="#watch">Simulasi Bot</a>.</p>
+      </div>
       <div class="on-grid">
         <div class="card">
           <h3>Buat room baru</h3>
