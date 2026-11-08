@@ -51,6 +51,28 @@ ANTHROPIC_API_KEY=sk-ant-...
 ```
 Tanpa kunci, tombol scan menampilkan "belum diaktifkan" dan kalkulator tetap bisa diisi manual. Scan wajib login dan dibatasi 30 foto/jam per pemain.
 
+## Suara & musik
+
+`js/sound.js` membuat semua suara langsung di browser (Web Audio, tanpa file audio), jadi tetap jalan offline. Tombol **🔊 Suara & musik** ada di layar persiapan permainan dan di menu ☰ saat bermain. Pengaturan disimpan di localStorage (`mjn-sound`).
+
+- **Musik latar**, hanya diputar saat di meja permainan:
+  - 🎼 **Gamelan lembut** (bawaan, rekomendasi): saron & bonang tangga nada slendro dengan gong sesekali;
+  - 🎋 **Guzheng**: petikan kecapi pentatonik;
+  - 🌧️ **Hujan**;
+  - 🌊 **Ombak pantai**;
+  - 🌳 **Hutan**: angin & kicau burung;
+  - 🔇 **Tanpa musik**.
+- **Efek suara**:
+  - ketukan kartu saat buang;
+  - Chow (dua ketukan + nada naik);
+  - Pong (tiga ketukan + lonceng);
+  - Kong (empat ketukan + gong);
+  - denting bunga;
+  - Riichi;
+  - dadu;
+  - fanfare + **tepuk tangan** saat menang (Hu/Zimo/Ron/Tsumo).
+- Volume musik dan efek bisa diatur terpisah. Di iPhone, matikan mode senyap agar suara terdengar.
+
 ## Pasang sebagai aplikasi
 
 Tombol **📲 Install di Android / Pasang di Layar Utama / Pasang di komputer** (Beranda, kotak mode offline, Profil, menu meja) selalu tampil selama situs belum dibuka sebagai aplikasi (`js/pwa.js`):
@@ -211,6 +233,7 @@ Uji lokal: `GOOGLE_CLIENT_ID=... npm start`.
 - `js/game.js` — mesin offline
 - `js/online.js` — klien online (lobby, room, meja, chat)
 - `js/learn.js` — modul belajar 17 langkah
+- `js/sound.js` — musik latar & efek suara (Web Audio, tanpa file audio)
 - `server/server.js` — server statis + WebSocket
 - `server/engine.js` — mesin permainan otoritatif per room
 - `server/auth.js`, `server/store.js`, `server/stats.js` — login Google, penyimpanan data, statistik & saran

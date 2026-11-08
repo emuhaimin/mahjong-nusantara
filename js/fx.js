@@ -6,6 +6,7 @@ const FX = (() => {
 
   /** text: 'PONG!' dll · who: nama pemain · anchor: elemen kursi pemain (untuk posisi) */
   function callout(text, who, anchor) {
+    if (window.Sound) Sound.callout(text);      // efek suara (js/sound.js)
     const kind = KIND[text] || 'pong';
     const el = document.createElement('div');
     el.className = 'fx-call fx-' + kind;

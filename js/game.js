@@ -372,6 +372,7 @@ const Game = (() => {
     if (pl.discards.length >= 0 && p === (G.dealer + 3) % 4) G.firstGo = false;
     pl.discards.push(t); pl.drawn = null;
     G.lastDiscard = { p, id: t.id };
+    if (window.Sound) Sound.tile();
     AI.noteDiscard(p, t.k);                     // riwayat buangan untuk AI Expert
     log(`${pname(p)} membuang ${tileName(t.k)}.`);
     return t;
