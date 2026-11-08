@@ -35,6 +35,14 @@ Ada 26 badge (perunggu/perak/emas/giok): perjalanan (sesi pertama, 10 & 50 sesi)
 
 Delapan kartu bonus (梅蘭菊竹 bunga, 春夏秋冬 musim) ikut dikocok. Seperti di meja nyata, bunga yang didapat langsung **dibuka di depan pemain** (di samping Pong/Chow terbuka), lalu pemain mengambil kartu pengganti dari ujung belakang tembok. Saat pembagian awal, bunga diganti mulai dari dealer dan diringkas di tengah meja. Bunga yang terambil di tengah permainan diumumkan dengan notifikasi **BUNGA!**. Bunga bernomor sama dengan kursi (Timur=1 … Utara=4) diberi lingkar emas karena bernilai +1 fan (Bunga Kursi Sendiri). Set lengkap = +2 fan, tanpa bunga sama sekali = +1 fan.
 
+## Pasang sebagai aplikasi
+
+Tombol **📲 Install di Android / Pasang di Layar Utama / Pasang di komputer** (Beranda, kotak mode offline, Profil, menu meja) selalu tampil selama situs belum dibuka sebagai aplikasi (`js/pwa.js`):
+- Android/komputer yang mendukung → dialog install bawaan (satu ketuk).
+- Bila browser tidak menawarkan (mis. Samsung Internet, kunjungan pertama) → panduan langkah per browser (Chrome ⋮ → Instal aplikasi; Samsung Internet ☰ → Tambahkan halaman ke → Layar Beranda; Chrome/Edge/Safari di komputer).
+- iPhone/iPad → panduan Safari → Bagikan → Tambah ke Layar Utama.
+- Dibuka dari dalam WhatsApp/Instagram/Facebook → peringatan untuk membuka di Chrome/Safari dulu.
+
 ## Bagikan (ajak teman & hasil permainan)
 
 `js/share.js` — tanpa pustaka luar, jalan juga offline:
