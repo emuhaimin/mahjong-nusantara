@@ -42,7 +42,9 @@ Menu **Alat Meja** (`#tools`, `js/tools.js`) — bebas tanpa login, jalan offlin
 - **📝 Pencatat Skor**: nama pemain 1–4 sesuai posisi (東 Timur/dealer, 南, 西, 北), varian Hong Kong / Taiwan / Riichi. Tiap hand: Menang (Zimo/Tsumo atau dari buangan siapa) + nilai fan/tai/han-fu, Seri (Riichi: siapa Ting), atau Poin manual. Pembayaran memakai aturan `js/variants.js`, dealer & angin ronde berputar otomatis (Riichi: honba & tongkat riichi). Riwayat, batalkan hand terakhir, bagikan klasemen sebagai gambar. Disimpan di perangkat (`localStorage`).
 - **🧮 Hitung dari kartu**: ketuk kartu menang (+bunga), tandai set yang terbuka & kartu penentu, lalu fan/tai/han dihitung otomatis — atau **📷 Kamera / 🖼️ Galeri**: foto diperkecil di browser lalu dikirim ke `POST /api/scan` → server memanggil **Claude API** (vision + structured outputs, `server/scan.js`) dan mengisi daftar kartu untuk diperiksa pemain.
 
-**Mengaktifkan scan foto** (berbayar per foto — kunci API Anthropic): tambahkan ke `/etc/mahjong-nusantara.env` di VPS lalu `systemctl restart mahjong`:
+**Mengaktifkan scan foto** (berbayar per foto — kunci API Anthropic, buat di https://console.anthropic.com → *API Keys*):
+- **Cara mudah (tanpa membuka VPS):** simpan kunci sebagai secret **`ANTHROPIC_API_KEY`** di GitHub → *Settings* → *Secrets and variables* → *Actions*, lalu jalankan workflow **Deploy ke VPS** (tab *Actions* → *Run workflow*) atau tunggu merge berikutnya. Workflow menulis kunci ke `/etc/mahjong-nusantara.env` (izin 600) lalu menyalakan ulang server. Mengganti kunci = ubah secret lalu deploy lagi.
+- **Manual:** tambahkan ke `/etc/mahjong-nusantara.env` di VPS lalu `systemctl restart mahjong`:
 ```
 ANTHROPIC_API_KEY=sk-ant-...
 # opsional: SCAN_MODEL=claude-opus-5-5
