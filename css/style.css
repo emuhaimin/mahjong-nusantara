@@ -893,3 +893,11 @@ html.guest [data-needs-login] h3::after{content:" · 🔒 perlu login";font-size
 .sound-box .sound-vol input{width:100%}
 .sound-box .modal-actions{position:sticky;bottom:0;background:var(--surface);margin:0 -20px;padding:12px 20px max(14px,env(safe-area-inset-bottom));box-shadow:0 -6px 12px -8px rgba(0,0,0,.25)}
 @media (max-width:639px){.sound-box .sound-opt small{font-size:12px}.sound-box h3{margin-bottom:4px}}
+.sound-mine{border:1.5px dashed var(--line);border-radius:12px;padding:10px 12px;margin:-4px 0 12px;display:grid;gap:8px}
+.sound-mine ol{margin:0;padding-left:20px;display:grid;gap:4px;max-height:180px;overflow:auto}
+.sound-mine li{display:flex;align-items:center;gap:8px;font-size:14px}
+.sound-mine li span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sound-mine .share-x.sm{position:static;width:28px;height:28px;font-size:13px;flex:none}
+.sound-mine label.btn{justify-self:start;cursor:pointer}
+.sound-mine p{margin:0}
+.sound-err{color:var(--accent);font-size:13px}

@@ -1,6 +1,7 @@
 /* sound.js — musik latar & efek suara, dibangkitkan langsung dengan Web Audio API (tanpa file audio:
    ringan, tanpa masalah lisensi, jalan offline).
-   Musik: Gamelan (slendro) · Guzheng (pentatonik) · Hujan · Ombak · Hutan · Mati — diputar hanya saat di meja.
+   Musik: Gamelan (slendro) · Guzheng (pentatonik) · Hujan · Ombak · Hutan · MP3 sendiri · Mati — diputar hanya saat di meja.
+   MP3 sendiri: file dipilih pemain & disimpan di IndexedDB perangkat itu (tidak diunggah ke server).
    Efek: buang kartu, Chow, Pong, Kong, Bunga, Riichi, menang (fanfare + tepuk tangan), dadu. */
 const Sound = (() => {
   const KEY = 'mjn-sound';
@@ -15,6 +16,7 @@ const Sound = (() => {
     { id: 'rain', ic: '🌧️', name: 'Hujan', desc: 'Rintik hujan menenangkan, bagus untuk fokus.' },
     { id: 'ocean', ic: '🌊', name: 'Ombak pantai', desc: 'Deburan ombak pelan bergelombang.' },
     { id: 'forest', ic: '🌳', name: 'Hutan', desc: 'Angin semilir & kicau burung.' },
+    { id: 'mine', ic: '🎵', name: 'Musik sendiri (MP3)', desc: 'Putar lagu dari HP/komputermu — mis. musik China atau gamelan Bali.' },
     { id: 'off', ic: '🔇', name: 'Tanpa musik', desc: 'Hanya efek suara (bila aktif).' },
   ];
 
@@ -94,13 +96,43 @@ const Sound = (() => {
     else if (k === 'HU' || k === 'ZIMO' || k === 'RON' || k === 'TSUMO') SFX.win();
   }
 
+  /* ---------------- musik sendiri: MP3 di IndexedDB ---------------- */
+  const MAX_TRACKS = 20, MAX_MB = 40;
+  const DB = (() => {
+    let p = null;
+    const open = () => p || (p = new Promise((res, rej) => {
+      if (!window.indexedDB) return rej(new Error('IndexedDB tidak tersedia'));
+      const r = indexedDB.open('mjn-music', 1);
+      r.onupgradeneeded = () => r.result.createObjectStore('tracks', { keyPath: 'id' });
+      r.onsuccess = () => res(r.result); r.onerror = () => { p = null; rej(r.error); };
+    }));
+    const run = (mode, fn) => open().then(db => new Promise((res, rej) => {
+      const t = db.transaction('tracks', mode), req = fn(t.objectStore('tracks'));
+      t.oncomplete = () => res(req.result); t.onerror = t.onabort = () => rej(t.error);
+    }));
+    return { all: () => run('readonly', s => s.getAll()), put: x => run('readwrite', s => s.put(x)), del: id => run('readwrite', s => s.delete(id)) };
+  })();
+  let tracks = [];                               // [{ id, name, size }] — tanpa blob
+  const refreshTracks = () => DB.all().then(a => { tracks = a.sort((x, y) => x.id - y.id).map(({ id, name, size }) => ({ id, name, size })); }).catch(() => { tracks = []; });
+  async function addFiles(files) {
+    const msg = [];
+    for (const f of files) {
+      if (tracks.length >= MAX_TRACKS) { msg.push(`Maksimal ${MAX_TRACKS} lagu.`); break; }
+      if (!/^audio\//.test(f.type) && !/\.(mp3|m4a|aac|ogg|oga|opus|wav|flac)$/i.test(f.name)) { msg.push(`${f.name}: bukan file audio.`); continue; }
+      if (f.size > MAX_MB * 1048576) { msg.push(`${f.name}: lebih dari ${MAX_MB} MB.`); continue; }
+      try { await DB.put({ id: Date.now() + Math.random(), name: f.name.replace(/\.[^.]+$/, ''), size: f.size, blob: f }); await refreshTracks(); }
+      catch { msg.push(`${f.name}: gagal disimpan (memori perangkat penuh?).`); }
+    }
+    return msg;
+  }
+
   /* ---------------- musik latar (generatif) ---------------- */
   let music = null;                              // { id, stop() }
   function startMusic(id) {
     stopMusic();
     if (!id || id === 'off' || !ensure()) return;
     const bus = ctx.createGain(); bus.gain.setValueAtTime(0.0001, now()); bus.gain.exponentialRampToValueAtTime(1, now() + 2); bus.connect(musicBus);
-    const timers = [], nodes = [];
+    const timers = [], nodes = [], cleanup = [];
     const every = (ms, fn) => { const h = setInterval(() => { if (ctx.state === 'running') fn(); }, ms); timers.push(h); fn(); };
     const loopNoise = ({ type, freq, q = .7, gain }) => {
       const s = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain();
@@ -149,8 +181,22 @@ const Sound = (() => {
         }
       };
       every(2600, () => { if (Math.random() < .7) bird(); });
+    } else if (id === 'mine') {                  // MP3 pemain, diacak & diulang, lewat musicBus (volume & fade sama)
+      const audio = new Audio(); audio.preload = 'auto';
+      const src = ctx.createMediaElementSource(audio); src.connect(bus);
+      let list = [], i = 0, url = null, dead = false, fails = 0;
+      const next = () => {
+        if (dead || !list.length) return;
+        if (url) URL.revokeObjectURL(url);
+        url = URL.createObjectURL(list[i++ % list.length].blob);
+        audio.src = url; audio.play().catch(() => { });
+      };
+      audio.onended = () => { fails = 0; next(); };
+      audio.onerror = () => { if (++fails < list.length) next(); };
+      DB.all().then(a => { for (let k = a.length - 1; k > 0; k--) { const j = Math.floor(Math.random() * (k + 1)); [a[k], a[j]] = [a[j], a[k]]; } list = a; next(); }).catch(() => { });
+      cleanup.push(() => { dead = true; audio.pause(); audio.removeAttribute('src'); audio.load(); if (url) URL.revokeObjectURL(url); src.disconnect(); });
     }
-    music = { id, stop() { timers.forEach(clearInterval); const t = now(); bus.gain.cancelScheduledValues(t); bus.gain.setValueAtTime(bus.gain.value || .0001, t); bus.gain.exponentialRampToValueAtTime(0.0001, t + .8); setTimeout(() => { nodes.forEach(n => { try { n.stop(); } catch { } }); bus.disconnect(); }, 1000); } };
+    music = { id, stop() { timers.forEach(clearInterval); const t = now(); bus.gain.cancelScheduledValues(t); bus.gain.setValueAtTime(bus.gain.value || .0001, t); bus.gain.exponentialRampToValueAtTime(0.0001, t + .8); setTimeout(() => { nodes.forEach(n => { try { n.stop(); } catch { } }); cleanup.forEach(f => { try { f(); } catch { } }); bus.disconnect(); }, 1000); } };
   }
   function stopMusic() { if (music) { music.stop(); music = null; } }
   let preview = false;
@@ -171,7 +217,8 @@ const Sound = (() => {
         <button class="share-x" data-s="close" aria-label="Tutup">✕</button>
         <h3>🔊 Suara & musik</h3>
         <p class="muted">Musik latar diputar saat kamu di meja permainan. Ketuk pilihan untuk mendengar contohnya.</p>
-        <div class="sound-list">${MUSIC.map(m => `<button type="button" class="sound-opt${S.music === m.id ? ' on' : ''}" data-m="${m.id}"><span class="si">${m.ic}</span><span><b>${m.name}</b><small>${m.desc}</small></span></button>`).join('')}</div>
+        <div class="sound-list">${MUSIC.map(m => `<button type="button" class="sound-opt${S.music === m.id ? ' on' : ''}" data-m="${m.id}"><span class="si">${m.ic}</span><span><b>${m.name}</b><small>${m.id === 'mine' && tracks.length ? `${tracks.length} lagu tersimpan di perangkat ini.` : m.desc}</small></span></button>`).join('')}</div>
+        ${S.music === 'mine' ? mineHTML() : ''}
         <label class="sound-vol">Volume musik <input type="range" min="0" max="100" value="${Math.round(S.mvol * 100)}" data-v="mvol"></label>
         <label class="chk sound-chk"><input type="checkbox" data-v="sfx"${S.sfx ? ' checked' : ''}> Efek suara (buang kartu, Chow/Pong/Kong, tepuk tangan saat menang)</label>
         <label class="sound-vol">Volume efek <input type="range" min="0" max="100" value="${Math.round(S.svol * 100)}" data-v="svol"></label>
@@ -179,14 +226,35 @@ const Sound = (() => {
         <p class="muted sound-note">iPhone: matikan mode senyap (sakelar di samping HP) agar suara terdengar.</p>
         <div class="modal-actions"><button class="btn big" data-s="close">Selesai</button></div></div>`;
     };
+    const mineHTML = () => `<div class="sound-mine">
+          ${tracks.length ? `<ol>${tracks.map(t => `<li><span>${esc(t.name)}</span><small class="muted">${(t.size / 1048576).toFixed(1)} MB</small><button type="button" class="share-x sm" data-del="${t.id}" aria-label="Hapus ${esc(t.name)}">✕</button></li>`).join('')}</ol>` : '<p class="muted">Belum ada lagu. Tambahkan file MP3 dari HP/komputermu.</p>'}
+          <label class="btn ghost sm">➕ Tambah lagu (MP3)<input type="file" accept="audio/*,.mp3,.m4a,.ogg,.wav" multiple data-f hidden></label>
+          ${msgs.length ? `<p class="sound-err">${msgs.map(esc).join('<br>')}</p>` : ''}
+          <p class="muted sound-note">Lagu hanya disimpan di perangkat ini, tidak diunggah ke server (maks. ${MAX_TRACKS} lagu, ${MAX_MB} MB per lagu). Pakai musik yang memang boleh kamu putar.</p>
+        </div>`;
+    let msgs = [];
+    const showMine = () => { const el = w.querySelector('.sound-mine'); if (el) el.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); };
+    const restartMine = () => { if (music && music.id === 'mine') { stopMusic(); syncMusic(); } };
     render();
     document.body.appendChild(w);
+    refreshTracks().then(() => { if (w.isConnected) render(); });
     preview = true; syncMusic();
     const close = () => { preview = false; w.remove(); syncMusic(); document.dispatchEvent(new CustomEvent('mjn-sound')); };
     w.addEventListener('click', e => {
       if (e.target === w || e.target.closest('[data-s="close"]')) return close();
-      const m = e.target.closest('[data-m]'); if (m) { S.music = m.dataset.m; save(); stopMusic(); syncMusic(); render(); return; }
+      const m = e.target.closest('[data-m]'); if (m) {
+        S.music = m.dataset.m; msgs = []; save(); stopMusic(); syncMusic(); render();
+        if (S.music === 'mine' && !tracks.length) { const f = w.querySelector('[data-f]'); if (f) f.click(); }
+        showMine();
+        return;
+      }
+      const d = e.target.closest('[data-del]'); if (d) { DB.del(+d.dataset.del).catch(() => { }).then(refreshTracks).then(() => { msgs = []; render(); restartMine(); }); return; }
       const x = e.target.closest('[data-x]'); if (x) { const was = S.sfx; S.sfx = true; SFX[x.dataset.x](); S.sfx = was; }
+    });
+    w.addEventListener('change', async e => {
+      if (!e.target.matches('[data-f]') || !e.target.files.length) return;
+      msgs = await addFiles([...e.target.files]);
+      render(); showMine(); restartMine(); syncMusic();
     });
     w.addEventListener('input', e => {
       const v = e.target.dataset.v; if (!v) return;
@@ -195,6 +263,7 @@ const Sound = (() => {
       save();
     });
   }
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const label = () => { const m = MUSIC.find(x => x.id === S.music) || MUSIC[0]; return `${m.ic} ${m.name}${S.sfx ? ' · efek aktif' : ' · efek mati'}`; };
 
   function init() {
