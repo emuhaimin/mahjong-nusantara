@@ -16,23 +16,20 @@ die()  { printf '\033[1;31m✗ %s\033[0m\n' "$*"; exit 1; }
 [ "$(id -u)" = 0 ] || die "Jalankan sebagai root (atau dengan sudo)."
 [ -f "$SRC/server/server.js" ] || die "File aplikasi tidak ditemukan di $SRC."
 
-# 1) Node.js 18+
+# 1) Node.js — butuh 22.13+ agar database SQLite bawaan (node:sqlite) bisa dipakai.
+#    Versi lebih lama (18+) tetap jalan dengan penyimpanan file, tapi kita naikkan ke Node 24 LTS bila bisa.
 say "Memeriksa Node.js"
-need_node=1
-if command -v node >/dev/null 2>&1; then
-  major="$(node -p 'process.versions.node.split(".")[0]')"
-  [ "$major" -ge 18 ] && need_node=0
-fi
-if [ "$need_node" = 1 ]; then
+node_ok() { node -e 'const [a,b]=process.versions.node.split(".").map(Number); process.exit(a>22||(a===22&&b>=13)?0:1)' 2>/dev/null; }
+node_min() { node -e 'process.exit(+process.versions.node.split(".")[0]>=18?0:1)' 2>/dev/null; }
+if ! command -v node >/dev/null 2>&1 || ! node_ok; then
   if command -v apt-get >/dev/null 2>&1; then
-    say "Memasang Node.js 20 (NodeSource)"
-    apt-get update -y
-    apt-get install -y ca-certificates curl gnupg
-    curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
-    apt-get install -y nodejs
-  else
-    die "Node.js 18+ belum ada dan sistem ini bukan Debian/Ubuntu. Pasang Node.js manual lalu jalankan ulang."
+    say "Memasang/menaikkan Node.js ke 24 LTS (NodeSource) — dibutuhkan untuk database SQLite"
+    if apt-get update -y && apt-get install -y ca-certificates curl gnupg \
+       && curl -fsSL https://deb.nodesource.com/setup_24.x | bash - && apt-get install -y nodejs; then :
+    else warn "Gagal memasang Node.js 24."; fi
   fi
+  command -v node >/dev/null 2>&1 && node_min || die "Node.js 18+ belum ada dan tidak bisa dipasang otomatis. Pasang Node.js 24 manual lalu jalankan ulang."
+  node_ok || warn "Node $(node -v) belum mendukung SQLite — aplikasi memakai penyimpanan file sampai Node dinaikkan ke 22.13+."
 fi
 NODE_BIN="$(command -v node)"
 echo "Node $("$NODE_BIN" -v) di $NODE_BIN"

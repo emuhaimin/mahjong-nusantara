@@ -13,6 +13,7 @@ const safeId = id => String(id).replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 80);
 
 class Store {
   constructor(dir) {
+    this.kind = 'file';
     this.dir = dir;
     fs.mkdirSync(path.join(dir, 'games'), { recursive: true, mode: 0o700 });
     this.users = this._load('users.json', {});
@@ -65,6 +66,7 @@ class Store {
     this._save('users.json');
     return u;
   }
+  userIds() { return Object.keys(this.users); }
   deleteUser(id) {
     delete this.users[id];
     for (const [k, s] of Object.entries(this.sessions)) if (s.userId === id) delete this.sessions[k];

@@ -10,6 +10,8 @@ const { EventEmitter } = require('events');
 const zlib = require('zlib');
 const { Room } = require('./engine');
 const { Store } = require('./store');
+const { SqliteStore, loadSqlite } = require('./store-sqlite');
+const { startBackups } = require('./backup');
 const { verifyGoogleIdToken } = require('./auth');
 const { summarize, sanitizeRecord } = require('./stats');
 const { mjnComputeRp, mjnRankFromRp, mjnBadges } = require('../js/progress');
@@ -43,7 +45,17 @@ const connPerIp = new Map();
 /* ---------------- akun & data pemain ---------------- */
 const CLIENT_ID = (process.env.GOOGLE_CLIENT_ID || '').trim();
 const DATA_DIR = process.env.DATA_DIR || process.env.STATE_DIRECTORY || path.join(ROOT, 'data');
-const store = new Store(DATA_DIR);
+/* SQLite bila tersedia (Node ≥ 22.13); kalau tidak, penyimpanan file lama tetap dipakai agar situs tetap jalan.
+   STORE=file memaksa penyimpanan file. */
+let store = null;
+{
+  const sqlite = process.env.STORE !== 'file' && loadSqlite();
+  if (sqlite) { try { store = new SqliteStore(DATA_DIR, sqlite); } catch (e) { console.error('[data] SQLite gagal dibuka, memakai penyimpanan file:', e); } }
+  else if (fs.existsSync(path.join(DATA_DIR, 'mahjong.db'))) console.error(`[data] PERINGATAN: ${path.join(DATA_DIR, 'mahjong.db')} ada, tetapi Node ${process.version} tidak mendukung SQLite — naikkan Node ke 22.13+ atau data terbaru tidak terbaca!`);
+  if (!store) store = new Store(DATA_DIR);
+  console.log(`[data] penyimpanan: ${store.kind === 'sqlite' ? `SQLite (${store.file})` : `file (${DATA_DIR})`}`);
+}
+const backups = startBackups(store, { dir: process.env.BACKUP_DIR || path.join(DATA_DIR, 'backups'), keep: Math.max(1, +process.env.BACKUP_KEEP || 14) });
 
 /* ---------- tingkat pemain & peringkat global ---------- */
 const rpCache = new Map();                 // userId → RP (dihitung ulang saat ada sesi baru)
@@ -57,7 +69,7 @@ function standing(id) {
   const mine = rpOf(id);
   if (mine == null) return null;
   let total = 0, above = 0;
-  for (const uid of Object.keys(store.users)) {
+  for (const uid of store.userIds()) {
     const rp = rpOf(uid);
     if (rp == null) continue;
     total++;
@@ -203,7 +215,7 @@ const server = http.createServer((req, res) => {
   try { url = decodeURIComponent(new URL(req.url, 'http://x').pathname); } catch { res.writeHead(400); return res.end(); }
   if (BASE && url === BASE) { res.writeHead(301, { location: BASE + '/' }); return res.end(); }
   url = stripBase(url);
-  if (url === '/health') { res.writeHead(200, { 'content-type': 'text/plain' }); return res.end(`ok rooms=${rooms.size}`); }
+  if (url === '/health') { res.writeHead(200, { 'content-type': 'text/plain' }); return res.end(`ok rooms=${rooms.size} store=${store.kind}`); }
   if (url.startsWith('/api/')) { handleApi(req, res, url); return; }
   if (req.method !== 'GET' && req.method !== 'HEAD') { res.writeHead(405); return res.end(); }
   if (url === '/') url = '/index.html';
@@ -340,7 +352,7 @@ setInterval(() => {
 function shutdown() {
   console.log('Menutup server…');
   for (const r of rooms.values()) r.destroy();
-  try { store.flush(); } catch (e) { console.error(e); }
+  try { store.flush(); if (store.close) store.close(); } catch (e) { console.error(e); }
   server.close(() => process.exit(0));
   setTimeout(() => process.exit(0), 3000).unref();
 }

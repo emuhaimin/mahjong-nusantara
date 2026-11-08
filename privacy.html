@@ -35,7 +35,8 @@
 
   <h2>4. Penyimpanan &amp; keamanan</h2>
   <ul>
-    <li>Data disimpan di server kami sendiri. Koneksi dienkripsi (HTTPS).</li>
+    <li>Data disimpan di server kami sendiri (database SQLite). Koneksi dienkripsi (HTTPS).</li>
+    <li>Untuk mencegah kehilangan data, server membuat salinan cadangan (backup) otomatis sekali sehari. Backup disimpan di server yang sama, hanya bisa diakses pengelola, dan otomatis terhapus setelah 14 hari.</li>
     <li>Sesi login memakai cookie khusus yang tidak bisa dibaca skrip situs (HttpOnly) dan berlaku 30 hari.</li>
     <li>Kami tidak menjual, menyewakan, atau membagikan datamu ke pihak lain, dan tidak memasang iklan atau pelacak pihak ketiga.</li>
   </ul>
@@ -43,7 +44,7 @@
   <h2>5. Hak kamu</h2>
   <ul>
     <li><b>Melihat data:</b> semua statistik dan riwayat terlihat di halaman Profil.</li>
-    <li><b>Menghapus data:</b> buka Profil → <i>Hapus akun &amp; semua riwayat</i>. Profil, sesi login, dan seluruh riwayatmu dihapus permanen dari server.</li>
+    <li><b>Menghapus data:</b> buka Profil → <i>Hapus akun &amp; semua riwayat</i>. Profil, sesi login, dan seluruh riwayatmu langsung dihapus permanen dari database. Salinan di backup harian ikut hilang paling lambat 14 hari kemudian, saat backup lama terhapus otomatis.</li>
     <li><b>Mencabut akses Google:</b> kapan saja melalui <a href="https://myaccount.google.com/permissions" target="_blank" rel="noopener">pengaturan akun Google</a>.</li>
   </ul>
 
