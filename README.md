@@ -35,6 +35,18 @@ Ada 26 badge (perunggu/perak/emas/giok): perjalanan (sesi pertama, 10 & 50 sesi)
 
 Delapan kartu bonus (梅蘭菊竹 bunga, 春夏秋冬 musim) ikut dikocok. Seperti di meja nyata, bunga yang didapat langsung **dibuka di depan pemain** (di samping Pong/Chow terbuka), lalu pemain mengambil kartu pengganti dari ujung belakang tembok. Saat pembagian awal, bunga diganti mulai dari dealer dan diringkas di tengah meja. Bunga yang terambil di tengah permainan diumumkan dengan notifikasi **BUNGA!**. Bunga bernomor sama dengan kursi (Timur=1 … Utara=4) diberi lingkar emas karena bernilai +1 fan (Bunga Kursi Sendiri). Set lengkap = +2 fan, tanpa bunga sama sekali = +1 fan.
 
+## Jenis mahjong (Main vs Mesin & Simulasi)
+
+Di layar pengaturan pemain memilih varian (diingat di perangkat). Aturan tiap varian ada di `js/variants.js`:
+
+| Varian | Kartu | Tangan | Skor | Ciri khas |
+|---|---|---|---|---|
+| **Hong Kong** 廣東 | 144 (dengan bunga) | 13 | fan (tabel poin) | Minimal fan bisa dipilih 0/1/3 |
+| **Taiwan** 台灣16張 | 144 (dengan bunga) | **16** (menang 5 set + 1 pasang) | tai — bayar 30 + tai × 10 | Dealer +1 tai (+2 tiap lanjut), tanpa minimal, tanpa Tujuh Pasang |
+| **Jepang · Riichi** 立直 | 136, tanpa bunga, 3 lima merah | 13 | han/fu (Mangan, Haneman, … Yakuman), skor awal 25.000 | Wajib yaku · deklarasi riichi (tongkat 1000, ura-dora) · dora/kan-dora dari dead wall · furiten · honba · bayar Ting saat seri · hanchan = Timur + Selatan |
+
+Bot memahami tiap varian (Taiwan: jarak Ting untuk 16 kartu; Riichi: hanya membuka tangan bila masih ada jalan ke yaku, deklarasi riichi saat Ting tertutup, kartu buangan lawan riichi = aman). Mode **Online** & pelajaran masih gaya Hong Kong.
+
 ## Tingkat lawan AI (Main vs Mesin & Simulasi)
 
 Bot memakai AI berbasis aturan (bukan *machine learning*): menghitung jarak tangan ke Ting (shanten), peluang kartu yang tersisa, fan, dan bahaya buangan. Pilih tingkatnya di layar pengaturan (diingat di perangkat):

@@ -43,7 +43,7 @@ function mjnComputeRp(records) {
   for (const r of records) {
     const vs = r.mode === 'online' ? MJN_RP.online : (MJN_RP.vs[r.level] != null ? MJN_RP.vs[r.level] : 0.8);
     let g = 0;
-    for (const h of r.hands || []) if (isWinHand(h)) g += MJN_RP.win + Math.floor((h.fan || 0) / 2);
+    for (const h of r.hands || []) if (isWinHand(h)) g += MJN_RP.win + Math.floor(Math.min(h.fan || 0, 13) / 2);   // tai Taiwan bisa >13 → dibatasi
     if (r.complete && r.rank >= 1 && r.rank <= 4) {
       let pl = MJN_RP.place[r.rank - 1];
       if (pl < 0 && mjnTierAt(rp).ti < 2) pl = 0;

@@ -33,14 +33,15 @@ function findDecomps(c, need) {
   }
   return out;
 }
-/** concealed: jenis kartu tertutup (termasuk kartu penentu). meldCount: jumlah set terbuka/kong. */
-function analyzeWin(concealed, meldCount) {
-  const need = 4 - meldCount;
+/** concealed: jenis kartu tertutup (termasuk kartu penentu). meldCount: jumlah set terbuka/kong.
+    sets: jumlah set untuk menang (4 = HK/Riichi, 5 = Taiwan 16 kartu). Tujuh Pasang & Tiga Belas Yatim hanya untuk 4 set. */
+function analyzeWin(concealed, meldCount, sets = 4) {
+  const need = sets - meldCount;
   if (concealed.length !== need * 3 + 2) return null;
   if (concealed.some(k => k >= 34)) return null;
   const c = toCounts(concealed);
   const r = { decomps: findDecomps(c, need), sevenPairs: false, thirteen: false };
-  if (meldCount === 0) {
+  if (meldCount === 0 && sets === 4) {
     r.sevenPairs = c.filter(x => x === 2).length === 7;
     r.thirteen = ORPHANS.every(k => c[k] >= 1) && ORPHANS.reduce((s, k) => s + c[k], 0) === 14;
   }
@@ -176,35 +177,35 @@ function groupCombos(c, from, honor) {
   return r;
 }
 const _SH_GROUPS = [[0, false], [9, false], [18, false], [27, true]];
-function shantenStd(c, open) {
-  const need = 4 - open;
-  let cur = new Uint8Array(50); cur[0] = 1;            // indeks = (m*5 + t)*2 + p
+function shantenStd(c, open, sets = 4) {
+  const need = Math.max(0, sets - open), W = need + 1, N = W * W * 2;
+  let cur = new Uint8Array(N); cur[0] = 1;             // indeks = (m*W + t)*2 + p
   for (const [from, honor] of _SH_GROUPS) {
-    const g = groupCombos(c, from, honor), nx = new Uint8Array(50);
-    for (let idx = 0; idx < 50; idx++) {
+    const g = groupCombos(c, from, honor), nx = new Uint8Array(N);
+    for (let idx = 0; idx < N; idx++) {
       if (!cur[idx]) continue;
-      const p = idx & 1, t = (idx >> 1) % 5, m = Math.floor((idx >> 1) / 5);
+      const p = idx & 1, t = (idx >> 1) % W, m = Math.floor((idx >> 1) / W);
       for (const [m2, t2, p2] of g) {
         const P = p + p2; if (P > 1) continue;
         const M = Math.min(m + m2, need), T = Math.min(t + t2, need);
-        nx[(M * 5 + T) * 2 + P] = 1;
+        nx[(M * W + T) * 2 + P] = 1;
       }
     }
     cur = nx;
   }
-  let best = 8;
-  for (let idx = 0; idx < 50; idx++) {
+  let best = 2 * need + 1;
+  for (let idx = 0; idx < N; idx++) {
     if (!cur[idx]) continue;
-    const p = idx & 1, t = (idx >> 1) % 5, m = Math.floor((idx >> 1) / 5);
+    const p = idx & 1, t = (idx >> 1) % W, m = Math.floor((idx >> 1) / W);
     const s = 2 * (need - m) - Math.min(t, need - m) - p;
     if (s < best) best = s;
   }
   return best;
 }
 /** -1 = sudah menang, 0 = Ting (menunggu 1 kartu), n = butuh n kartu tepat lagi menuju Ting */
-function shantenAll(c, open) {
-  let s = shantenStd(c, open);
-  if (open === 0) {
+function shantenAll(c, open, sets = 4) {
+  let s = shantenStd(c, open, sets);
+  if (open === 0 && sets === 4) {
     let pairs = 0, kinds = 0;
     for (let i = 0; i < 34; i++) { if (c[i] >= 1) kinds++; if (c[i] >= 2) pairs++; }
     s = Math.min(s, 6 - pairs + Math.max(0, 7 - kinds));
@@ -214,12 +215,12 @@ function shantenAll(c, open) {
   }
   return s;
 }
-/** kartu-kartu yang membuat tangan 13 (atau setara) menjadi menang */
-function waitingTiles(kinds, meldCount) {
+/** kartu-kartu yang membuat tangan 13 (atau 16 untuk Taiwan) menjadi menang */
+function waitingTiles(kinds, meldCount, sets = 4) {
   const c = toCounts(kinds), res = [];
   for (let x = 0; x < 34; x++) {
     if (c[x] >= 4) continue;
-    if (analyzeWin(kinds.concat([x]), meldCount)) res.push(x);
+    if (analyzeWin(kinds.concat([x]), meldCount, sets)) res.push(x);
   }
   return res;
 }

@@ -24,7 +24,8 @@ Catatan:
 - `index.html`, `css/style.css`: tampilan (desktop: meja; HP: tab bar bawah).
 - `js/tiles.js`, `js/rules.js`: kartu, shanten, hitung fan (dipakai juga oleh server).
 - `js/ai.js`: bot AI 4 tingkat (easy/medium/hard/expert), dipakai `js/game.js` (offline) **dan** `server/engine.js` (Online).
-- `js/game.js`: Main vs Mesin & Simulasi. `js/online.js`: klien Online. `js/learn.js`: pelajaran.
+- `js/variants.js`: aturan varian Hong Kong / Taiwan (16 kartu, tai) / Riichi (yaku, han/fu, dora, furiten) — skor, pembayaran, dealer. `js/rules.js` (`analyzeWin`, `shantenAll`, `waitingTiles`) menerima parameter `sets` (4 atau 5).
+- `js/game.js`: Main vs Mesin & Simulasi (semua varian). Online (`server/engine.js`) masih Hong Kong saja. `js/online.js`: klien Online. `js/learn.js`: pelajaran.
 - `js/progress.js`: tingkat pemain (Pemula → Dewa Mahjong, RP) & 26 badge, dihitung server (`/api/stats` → `progress`) dan ditampilkan di Profil.
 - `js/account.js` + `server/auth.js`, `server/stats.js`: login Google, rekaman sesi, statistik.
 - Data pemain: `server/store-sqlite.js` (SQLite `DATA_DIR/mahjong.db`, utama; butuh Node 22.13+) dengan cadangan `server/store.js` (file JSON). Keduanya punya antarmuka yang sama — ubah keduanya bila menambah method. `server/backup.js`: backup harian otomatis ke `DATA_DIR/backups` (14 terakhir).
