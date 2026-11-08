@@ -61,6 +61,7 @@ Tanpa kunci, tombol scan menampilkan "belum diaktifkan" dan kalkulator tetap bis
   - 🌧️ **Hujan**;
   - 🌊 **Ombak pantai**;
   - 🌳 **Hutan**: angin & kicau burung;
+  - 🎵 **Musik sendiri (MP3)**: pemain memilih lagu dari HP/komputer (mis. musik China atau gamelan Bali). Lagu disimpan di IndexedDB perangkat itu (`mjn-music`), tidak diunggah ke server, maks. 20 lagu × 40 MB, diputar acak & berulang;
   - 🔇 **Tanpa musik**.
 - **Efek suara**:
   - ketukan kartu saat buang;
