@@ -8,34 +8,70 @@ const PWA = (() => {
   const isPhone = () => matchMedia('(pointer: coarse)').matches && Math.min(screen.width, screen.height) < 820;
   let deferred = null, reloadPending = false;
 
-  function syncButtons() {
-    const can = !isApp() && (deferred || isIOS);
-    $$('[data-install]').forEach(b => { b.hidden = !can; });
-    document.documentElement.classList.toggle('is-app', isApp());
+  /* ---------- pasang aplikasi: Android (install), iPhone/iPad (Layar Utama), komputer ---------- */
+  const UA = navigator.userAgent;
+  const isAndroid = /android/i.test(UA);
+  const isSamsung = /SamsungBrowser/i.test(UA);
+  const inApp = /FBAN|FBAV|FB_IAB|Instagram|Line\/|WhatsApp|TikTok|; wv\)/i.test(UA);   // browser di dalam aplikasi lain
+  const iosNotSafari = isIOS && /CriOS|FxiOS|EdgiOS|OPiOS|GSA\//i.test(UA);
+  function label() {
+    if (isIOS) return '📲 Pasang di Layar Utama';
+    if (isAndroid) return '📲 Install di Android';
+    return '💻 Pasang di komputer';
   }
-
-  function iosGuide() {
+  function syncButtons() {
+    const app = isApp();
+    $$('[data-install]').forEach(b => { b.hidden = app; b.textContent = label(); });
+    document.documentElement.classList.toggle('is-app', app);
+  }
+  function guide(title, steps, note) {
     const box = document.getElementById('modal-box');
-    box.innerHTML = `<h2>📲 Pasang di iPhone / iPad</h2>
-      <ol style="font-size:16px;line-height:1.7;padding-left:22px">
-        <li>Buka situs ini di <b>Safari</b>.</li>
-        <li>Ketuk tombol <b>Bagikan</b> <span style="font-size:20px">⎙</span> (kotak dengan panah ke atas) di bawah layar.</li>
-        <li>Gulir lalu pilih <b>“Tambah ke Layar Utama”</b> (<i>Add to Home Screen</i>).</li>
-        <li>Ketuk <b>Tambah</b>. Ikon <b>Mahjong</b> muncul di layar utama.</li>
-      </ol>
-      <p class="muted">Dibuka dari ikon itu, meja tampil penuh tanpa bar browser.</p>
-      <div class="modal-actions"><button class="btn big" id="ios-ok">Mengerti</button></div>`;
+    box.innerHTML = `<h2>${title}</h2>
+      ${inApp ? `<p class="ab-hint warn install-warn">⚠️ Kamu membuka situs ini dari dalam aplikasi lain (mis. WhatsApp/Instagram/Facebook). Ketuk menu <b>⋮</b> atau <b>↗</b> lalu pilih <b>“Buka di ${isIOS ? 'Safari' : 'Chrome'}”</b> dulu — browser di dalam aplikasi tidak bisa memasang.</p>` : ''}
+      <ol class="install-steps">${steps.map(x => `<li>${x}</li>`).join('')}</ol>
+      ${note ? `<p class="muted">${note}</p>` : ''}
+      <p class="muted">Setelah terpasang, buka dari ikon <b>Mahjong</b>: tampil penuh tanpa bar browser, lebih cepat, dan bisa dimainkan tanpa internet.</p>
+      <div class="modal-actions"><button class="btn big" id="ins-ok">Mengerti</button></div>`;
     document.getElementById('modal').hidden = false;
-    document.getElementById('ios-ok').onclick = () => { document.getElementById('modal').hidden = true; };
+    document.getElementById('ins-ok').onclick = () => { document.getElementById('modal').hidden = true; };
+  }
+  function iosGuide() {
+    guide('📲 Pasang di iPhone / iPad', [
+      iosNotSafari ? 'Paling mudah lewat <b>Safari</b>: salin alamat situs ini lalu buka di Safari (di iOS 16.4+ Chrome juga bisa lewat tombol Bagikan).' : 'Pastikan situs ini terbuka di <b>Safari</b>.',
+      'Ketuk tombol <b>Bagikan</b> <span style="font-size:20px">⎙</span> (kotak dengan panah ke atas) — di bawah layar iPhone, atau di kanan atas iPad.',
+      'Gulir lalu pilih <b>“Tambah ke Layar Utama”</b> (<i>Add to Home Screen</i>).',
+      'Ketuk <b>Tambah</b>. Ikon <b>Mahjong</b> muncul di layar utama.',
+    ]);
+  }
+  function androidGuide() {
+    guide('📲 Install di Android', isSamsung ? [
+      'Ketuk menu <b>☰</b> (kanan bawah) di Samsung Internet.',
+      'Pilih <b>“Tambahkan halaman ke”</b> → <b>“Layar Beranda”</b> (atau <b>“Instal aplikasi”</b> bila tersedia).',
+      'Ketuk <b>Tambahkan</b>. Ikon <b>Mahjong</b> muncul di layar beranda.',
+    ] : [
+      'Buka situs ini di <b>Google Chrome</b>.',
+      'Ketuk menu <b>⋮</b> (tiga titik, kanan atas).',
+      'Pilih <b>“Instal aplikasi”</b> atau <b>“Tambahkan ke Layar utama”</b>.',
+      'Ketuk <b>Instal</b>. Ikon <b>Mahjong</b> muncul di layar beranda & daftar aplikasi.',
+    ], 'Tidak perlu Play Store — aplikasinya ringan dan selalu versi terbaru.');
+  }
+  function desktopGuide() {
+    guide('💻 Pasang di komputer', [
+      '<b>Chrome / Edge</b>: klik ikon <b>Instal</b> (layar dengan panah) di ujung kanan kolom alamat, atau menu <b>⋮</b> → <b>“Instal Mahjong Nusantara”</b> / <b>“Simpan dan bagikan” → “Instal halaman sebagai aplikasi”</b>.',
+      '<b>Safari (Mac)</b>: menu <b>File</b> → <b>“Tambah ke Dock”</b>.',
+      'Mahjong Nusantara terbuka di jendela sendiri seperti aplikasi biasa.',
+    ]);
   }
 
   async function install() {
-    if (deferred) {
+    if (deferred) {                              // Android/komputer yang mendukung: dialog install bawaan, satu ketuk
       deferred.prompt();
-      try { await deferred.userChoice; } catch { }
+      try { const c = await deferred.userChoice; if (c && c.outcome === 'accepted' && window.FX) FX.toast('Mahjong Nusantara sedang dipasang 🎉'); } catch { }
       deferred = null;
       syncButtons();
     } else if (isIOS) iosGuide();
+    else if (isAndroid) androidGuide();
+    else desktopGuide();
   }
 
   /* ---------- offline / mode pesawat ---------- */
@@ -69,7 +105,7 @@ const PWA = (() => {
     syncNet();
 
     window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; syncButtons(); });
-    window.addEventListener('appinstalled', () => { deferred = null; syncButtons(); });
+    window.addEventListener('appinstalled', () => { deferred = null; syncButtons(); if (window.FX) FX.toast('Terpasang! Buka Mahjong Nusantara dari ikon di layar utama.'); });
     document.addEventListener('click', e => { if (e.target.closest('[data-install]')) install(); });
 
     // HP lewat browser: masuk meja langsung layar penuh (butuh ketukan pengguna → saat tombol Mulai)
@@ -102,6 +138,6 @@ const PWA = (() => {
     }
     syncButtons();
   }
-  return { init, isApp, isOffline };
+  return { init, isApp, isOffline, sync: syncButtons, install };
 })();
 PWA.init();
