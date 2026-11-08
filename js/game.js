@@ -538,6 +538,38 @@ const Game = (() => {
     }).join('')}</tbody></table>`;
   }
 
+  /* ---------- bagikan hasil (js/share.js) ---------- */
+  const isMe = i => i === 0 && cfg.mode === 'play';
+  function totalTxt(s) { return V.id === 'jp' ? (s.yakuman ? s.limit : `${s.han} han · ${s.fu} fu${s.limit ? ' · ' + s.limit : ''}`) : `${s.value} ${V.unit}`; }
+  function shareResult(res) {
+    const pl = G.players[res.p], s = res.score;
+    const winK = res.tile ? res.tile.k : (pl.hand.find(t => t.id === pl.drawn) || {}).k;
+    let marked = false;
+    const mark = (ks, can) => ks.map(k => { const w = can && !marked && k === winK; if (w) marked = true; return { k, win: w }; });
+    const groups = s.decomp
+      ? s.decomp.sets.map(set => ({ ks: mark(set.kong ? [set.k, set.k, set.k, set.k] : set.type === 'chow' ? [set.k, set.k + 1, set.k + 2] : [set.k, set.k, set.k], !set.open), label: (set.kong ? 'Kong' : set.type === 'chow' ? 'Chow' : 'Pong') + (set.open ? ' terbuka' : '') }))
+        .concat([{ ks: mark([s.decomp.pair, s.decomp.pair], true), label: 'Mata' }])
+      : [{ ks: mark(kindsOf(pl).sort((a, b) => a - b), true), label: s.pattern }];
+    const me = isMe(res.p), tot = totalTxt(s);
+    MjnShare.shareResult({
+      variant: V.name, title: me ? 'Aku menang!' : `${pl.name} menang!`,
+      subtitle: `Hand ${G.handNo} · Ronde ${WIND_ID[Math.min(G.roundWind, 3)]} · ${res.selfDraw ? (V.id === 'jp' ? 'Tsumo' : 'Zimo — ambil sendiri') : `dari buangan ${G.players[res.from].name}`}`,
+      groups, flowers: pl.flowers.slice().sort((a, b) => a - b), items: s.items, total: tot,
+      scores: G.players.map((p, i) => ({ name: p.name, delta: res.delta[i], score: p.score, me: isMe(i) })),
+    }, me ? `🀄 Aku baru menang *${tot}* di Mahjong Nusantara (${V.name})!` : `🀄 Seru! ${pl.name} menang *${tot}* di Mahjong Nusantara (${V.name}).`);
+  }
+  function shareFinal() {
+    const rank = G.players.map((p, i) => ({ ...p, i })).sort((a, b) => b.score - a.score);
+    const mine = rank.findIndex(p => isMe(p.i)) + 1;
+    const lv = cfg.level === 'mix' ? 'Campuran' : LEVELS[cfg.level].label;
+    MjnShare.shareResult({
+      variant: V.name, title: mine === 1 ? 'Aku juara meja!' : 'Permainan selesai',
+      subtitle: `${cfg.mode === 'watch' ? 'Simulasi 4 bot' : `vs bot AI ${lv}`} · ${cfg.length === 'one' ? '1 hand' : cfg.length === 'east' ? '1 ronde angin' : 'permainan penuh'} · ${G.handNo} hand`,
+      scores: rank.map((p, n) => ({ rank: n + 1, name: p.name, delta: p.score - V.startScore, score: p.score, me: isMe(p.i) })),
+      footer: 'Berani lawan bot Expert? Main gratis di',
+    }, mine ? `🏆 Aku finis *#${mine}* melawan bot AI ${lv} di Mahjong Nusantara (${V.name})!` : `🏆 Simulasi bot Mahjong Nusantara selesai — juara: ${rank[0].name}.`);
+  }
+
   function showResult(res) {
     return new Promise((resolve, reject) => {
       let h = '';
@@ -556,13 +588,14 @@ const Game = (() => {
       h += scoreTableHTML(res);
       const last = matchOver() || (!res.dealerStays && (G.dealer + 1) % 4 === G.firstDealer && (cfg.length === 'east' ? G.roundWind === 0 : G.roundWind === (V.id === 'jp' ? 1 : 3)));
       h += `<p class="muted">${res.dealerStays ? (V.id === 'jp' ? 'Dealer menang atau Ting saat seri → dealer tetap (honba +1).' : 'Dealer menang atau seri → dealer tetap.') : 'Dealer tidak menang → posisi dealer berpindah ke pemain berikutnya (berlawanan arah jarum jam).'}</p>`;
-      h += `<div class="modal-actions"><button class="btn big" id="res-ok">${last || cfg.length === 'one' ? 'Lihat hasil akhir' : 'Hand berikutnya →'}</button></div>`;
+      h += `<div class="modal-actions">${res.type === 'draw' ? '' : '<button class="btn ghost" id="res-share">📤 Bagikan</button>'}<button class="btn big" id="res-ok">${last || cfg.length === 'one' ? 'Lihat hasil akhir' : 'Hand berikutnya →'}</button></div>`;
       openModal(h);
       const t = token; let done = false;
       const fin = () => { if (done) return; done = true; aborters.delete(ab); closeModal(); t === token ? resolve() : reject(ABORT); };
       const ab = () => { done = true; reject(ABORT); };
       aborters.add(ab);
       $('#res-ok').onclick = fin;
+      if ($('#res-share')) $('#res-share').onclick = () => shareResult(res);
       if (cfg.mode === 'watch') setTimeout(fin, Math.max(3000, 7000 * (SPEED[cfg.speed] || 1)));
     });
   }
@@ -579,10 +612,11 @@ const Game = (() => {
     const rank = G.players.map((p, i) => ({ ...p, i })).sort((a, b) => b.score - a.score);
     const h = `<h2>🏆 Permainan selesai</h2><p>Juara: <b>${esc(rank[0].name)}</b> dengan ${rank[0].score} poin.</p>
       <table class="fan-table"><thead><tr><th>#</th><th>Pemain</th><th>Skor akhir</th></tr></thead><tbody>${rank.map((p, n) => `<tr><td>${n + 1}</td><td>${esc(p.name)}</td><td>${p.score} <small class="muted">(${p.score - V.startScore >= 0 ? '+' : ''}${p.score - V.startScore})</small></td></tr>`).join('')}</tbody></table>
-      <div class="modal-actions"><button class="btn ghost" id="fin-menu">Ke pengaturan</button><button class="btn big" id="fin-again">Main lagi</button></div>`;
+      <div class="modal-actions"><button class="btn ghost" id="fin-menu">Ke pengaturan</button><button class="btn ghost" id="fin-share">📤 Bagikan</button><button class="btn big" id="fin-again">Main lagi</button></div>`;
     openModal(h);
     $('#fin-again').onclick = () => { closeModal(); start(cfg); };
     $('#fin-menu').onclick = () => { closeModal(); quit(); };
+    $('#fin-share').onclick = shareFinal;
   }
 
   function openModal(h) { $('#modal-box').innerHTML = h; $('#modal').hidden = false; }

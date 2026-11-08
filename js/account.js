@@ -335,6 +335,7 @@ const Account = (() => {
       <div class="card pf-head">
         ${user.picture ? `<img class="pf-av" src="${esc(user.picture)}" alt="" referrerpolicy="no-referrer">` : `<span class="pf-av av-fallback">${esc(display()[0] || '?')}</span>`}
         <div class="pf-id"><h2>${esc(display())}</h2><small>${esc(user.name)} · ${esc(user.email)}</small></div>
+        <button class="btn ghost sm" data-share-app>📣 Ajak teman</button>
         <button class="btn ghost sm" id="pf-logout">Keluar akun</button>
         <div class="pf-alias"><span>Nama di meja: <b>${esc(display())}</b>${user.alias ? '' : ' <em>(belum memilih alias)</em>'}</span>
           <button class="btn jade sm" id="pf-alias">${user.alias ? 'Ubah alias' : 'Pilih alias'}</button></div>
