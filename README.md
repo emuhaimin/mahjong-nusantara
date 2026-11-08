@@ -72,6 +72,7 @@ Tanpa kunci, tombol scan menampilkan "belum diaktifkan" dan kalkulator tetap bis
   - Riichi;
   - dadu;
   - fanfare + **tepuk tangan** saat menang (Hu/Zimo/Ron/Tsumo).
+- **Tombol cepat di meja** (pojok, di samping tombol menu): **⏭ Ganti lagu** (MP3 sendiri: lagu berikutnya; selain itu: pindah ke gaya musik berikutnya) dan **🔊/🔇 Bisukan** (mematikan musik & efek sekaligus, tersimpan).
 - Volume musik dan efek bisa diatur terpisah. Di iPhone, matikan mode senyap agar suara terdengar.
 
 ## Pasang sebagai aplikasi

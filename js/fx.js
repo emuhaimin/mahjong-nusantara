@@ -57,3 +57,4 @@ const FX = (() => {
 
   return { callout, vibrate, ask, isAsking, toast };
 })();
+window.FX = FX;   // agar pemeriksaan `window.FX` di pwa.js/tools.js berfungsi
