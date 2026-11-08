@@ -299,7 +299,7 @@ const Online = (() => {
     if (f) {
       h = `<h2>🏆 Permainan selesai</h2><p>Juara: <b>${esc(f[0].name)}</b> dengan ${f[0].score} poin.</p>
         <table class="fan-table"><thead><tr><th>#</th><th>Pemain</th><th>Skor akhir</th></tr></thead><tbody>${f.map((p, n) => `<tr><td>${n + 1}</td><td>${esc(p.name)}${p.i === S.you ? ' <small>(kamu)</small>' : ''}</td><td>${p.score} <small class="muted">(${p.score - 500 >= 0 ? '+' : ''}${p.score - 500})</small></td></tr>`).join('')}</tbody></table>
-        <div class="modal-actions"><button class="btn ghost" data-m="leave">Keluar room</button>${S.host === S.you ? '<button class="btn big" data-m="restart">Main lagi</button>' : '<span class="muted">Menunggu host memulai lagi…</span>'}</div>`;
+        <div class="modal-actions"><button class="btn ghost" data-m="leave">Keluar room</button><button class="btn ghost" data-m="share">📤 Bagikan</button>${S.host === S.you ? '<button class="btn big" data-m="restart">Main lagi</button>' : '<span class="muted">Menunggu host memulai lagi…</span>'}</div>`;
     } else {
       if (r.type === 'draw') h = `<h2>Seri — tembok habis</h2><p>Tidak ada yang menang. Dealer tetap.</p>`;
       else {
@@ -322,12 +322,41 @@ const Online = (() => {
         return `<tr><td>${esc(p.name)}${i === S.you ? ' <small>(kamu)</small>' : ''}</td><td><span class="zh">${WIND_CH[r.winds[i]]}</span> ${WIND_ID[r.winds[i]]}</td><td class="${d > 0 ? 'plus' : d < 0 ? 'minus' : ''}">${d > 0 ? '+' : ''}${d}</td><td>${p.score}</td></tr>`;
       }).join('')}</tbody></table>
         <p class="muted">${r.dealerStays ? 'Dealer menang atau seri → dealer tetap.' : 'Dealer berpindah ke pemain berikutnya.'}</p>
-        <div class="modal-actions">${ready ? '<span class="muted">Menunggu pemain lain… (otomatis lanjut dalam 30 detik)</span>' : `<button class="btn big" data-m="next">${r.last ? 'Lihat hasil akhir' : 'Hand berikutnya →'}</button>`}</div>`;
+        <div class="modal-actions">${r.type !== 'draw' ? '<button class="btn ghost" data-m="share">📤 Bagikan</button>' : ''}${ready ? '<span class="muted">Menunggu pemain lain… (otomatis lanjut dalam 30 detik)</span>' : `<button class="btn big" data-m="next">${r.last ? 'Lihat hasil akhir' : 'Hand berikutnya →'}</button>`}</div>`;
     }
     $('#modal-box').innerHTML = h;
     $('#modal').hidden = false;
   }
   function closeModal() { modalKey = ''; if (active) $('#modal').hidden = true; }
+  /* ---------- bagikan hasil Online (js/share.js) ---------- */
+  function shareOnline() {
+    const g = S.g, r = g.result, f = g.final;
+    if (f) {
+      const mine = f.findIndex(p => p.i === S.you) + 1;
+      return MjnShare.shareResult({
+        variant: 'Online · Hong Kong', title: mine === 1 ? 'Aku juara meja Online!' : 'Permainan Online selesai',
+        subtitle: `Room ${S.code} · ${S.seats.filter(s => s && s.human).length} pemain manusia`,
+        scores: f.map((p, n) => ({ rank: n + 1, name: p.name, delta: p.score - 500, score: p.score, me: p.i === S.you })),
+        footer: 'Ajak teman main Online di',
+      }, mine ? `🏆 Aku finis *#${mine}* di meja Online Mahjong Nusantara!` : '🏆 Main Online di Mahjong Nusantara!');
+    }
+    if (!r || r.type === 'draw') return;
+    const s = r.score, pl = g.players[r.p];
+    const winK = r.tileK != null ? r.tileK : ((pl.hand || []).find(t => t.id === pl.drawn) || {}).k;
+    let marked = false;
+    const mark = (ks, can) => ks.map(k => { const w = can && !marked && k === winK; if (w) marked = true; return { k, win: w }; });
+    const groups = s.decomp
+      ? s.decomp.sets.map(set => ({ ks: mark(set.kong ? [set.k, set.k, set.k, set.k] : set.type === 'chow' ? [set.k, set.k + 1, set.k + 2] : [set.k, set.k, set.k], !set.open), label: (set.kong ? 'Kong' : set.type === 'chow' ? 'Chow' : 'Pong') + (set.open ? ' terbuka' : '') }))
+        .concat([{ ks: mark([s.decomp.pair, s.decomp.pair], true), label: 'Mata' }])
+      : [{ ks: mark((pl.hand || []).map(t => t.k).sort((a, b) => a - b), true), label: s.pattern }];
+    const me = r.p === S.you;
+    MjnShare.shareResult({
+      variant: 'Online · Hong Kong', title: me ? 'Aku menang!' : `${pl.name} menang!`,
+      subtitle: `Room ${S.code} · Hand ${r.handNo} · ${r.selfDraw ? 'Zimo — ambil sendiri' : `dari buangan ${g.players[r.from].name}`}`,
+      groups, flowers: pl.flowers.slice().sort((a, b) => a - b), items: s.items, total: `${s.fan} fan`,
+      scores: g.players.map((p, i) => ({ name: p.name, delta: r.delta[i], score: p.score, me: i === S.you })),
+    }, me ? `🀄 Aku baru menang *${s.fan} fan* di meja Online Mahjong Nusantara!` : `🀄 Seru! ${pl.name} menang *${s.fan} fan* di meja Online Mahjong Nusantara.`);
+  }
 
   /* ---------------- aksi pengguna ---------------- */
   function act(a) { send({ t: 'act', act: a }); }
@@ -425,6 +454,7 @@ const Online = (() => {
       if (m === 'next') send({ t: 'next' });
       else if (m === 'restart') { send({ t: 'restart' }); closeModal(); }
       else if (m === 'leave') leave();
+      else if (m === 'share') shareOnline();
     });
     setInterval(() => {
       const el = document.getElementById('on-timer');

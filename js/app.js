@@ -98,6 +98,9 @@
   const lvDesc = () => { $('#cfg-level-desc').textContent = LV_DESC[lvSel.value] || ''; };
   lvSel.addEventListener('change', () => { lvDesc(); try { localStorage.setItem(LV_KEY, lvSel.value); } catch { } });
   lvDesc();
+  /* ---------- tombol 📣 Ajak teman (Beranda, Profil, dll.) ---------- */
+  document.addEventListener('click', e => { if (e.target.closest('[data-share-app]')) MjnShare.shareApp(); });
+
   /* ---------- jenis mahjong (diingat di perangkat ini) ---------- */
   const VAR_KEY = 'mjn-variant';
   const varVal = () => (document.querySelector('input[name="cfg-variant"]:checked') || {}).value || 'hk';

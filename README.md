@@ -35,6 +35,14 @@ Ada 26 badge (perunggu/perak/emas/giok): perjalanan (sesi pertama, 10 & 50 sesi)
 
 Delapan kartu bonus (梅蘭菊竹 bunga, 春夏秋冬 musim) ikut dikocok. Seperti di meja nyata, bunga yang didapat langsung **dibuka di depan pemain** (di samping Pong/Chow terbuka), lalu pemain mengambil kartu pengganti dari ujung belakang tembok. Saat pembagian awal, bunga diganti mulai dari dealer dan diringkas di tengah meja. Bunga yang terambil di tengah permainan diumumkan dengan notifikasi **BUNGA!**. Bunga bernomor sama dengan kursi (Timur=1 … Utara=4) diberi lingkar emas karena bernilai +1 fan (Bunga Kursi Sendiri). Set lengkap = +2 fan, tanpa bunga sama sekali = +1 fan.
 
+## Bagikan (ajak teman & hasil permainan)
+
+`js/share.js` — tanpa pustaka luar, jalan juga offline:
+- **📣 Ajak teman** (Beranda & Profil): teks promosi siap kirim (format WhatsApp) + gambar promosi 1080×1350.
+- **📤 Bagikan** di layar hasil hand (bila ada yang menang) & hasil akhir — Main vs Mesin, Simulasi, dan Online. Gambar kartu hasil digambar di `<canvas>`: kartu menang (kartu penentu disorot), tabel pola/yaku + total, skor/peringkat, logo & *by emires one*, alamat situs.
+- Di HP: **Bagikan gambar…** (Web Share API) mengirim gambar + teks ke WhatsApp, Instagram, X, Facebook, dll. Tombol WhatsApp/X/Facebook membuka tautan berbagi web (teks + link); Instagram tidak punya tautan web, jadi memakai menu Bagikan atau unduh gambar. Selalu ada **Unduh gambar** & **Salin teks**.
+- Tag Open Graph di `index.html` agar link situs tampil rapi saat dibagikan.
+
 ## Jenis mahjong (Main vs Mesin & Simulasi)
 
 Di layar pengaturan pemain memilih varian (diingat di perangkat). Aturan tiap varian ada di `js/variants.js`:
