@@ -7,7 +7,7 @@ const Online = (() => {
   const POS = ['bottom', 'right', 'top', 'left'];
   const LS = 'mjn-online';
   let ws = null, S = null, everOpen = false, retry = null, sel = null, deadlineAt = 0, totalMs = 0;
-  let lastCallout = null, invitedTo = null;
+  let lastCallout = null, invitedTo = null, lastDiscardId = null;
   let active = false, seenChat = -1, logOpen = false, modalKey = '';
 
   const load = () => { try { return JSON.parse(localStorage.getItem(LS)) || {}; } catch { return {}; } };
@@ -181,6 +181,7 @@ const Online = (() => {
     renderActions();
     renderChat();
     setInvite();
+    if (g.lastDiscard && g.lastDiscard.id !== lastDiscardId) { if (lastDiscardId !== null && window.Sound) Sound.tile(); lastDiscardId = g.lastDiscard.id; }
     if (g.callout && g.callout.id !== lastCallout) {
       const fresh = lastCallout !== null || Date.now() - g.callout.id < 2500;
       lastCallout = g.callout.id;

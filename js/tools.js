@@ -52,6 +52,7 @@ const Tools = (() => {
       if (!r || (r.cands.length === 1 && r.idx >= r.order.length)) D.dealerRolls = { rolls: [null, null, null, null], cands: [0, 1, 2, 3], order: [0, 1, 2, 3], idx: 0, round: 1 };
     }
     D.rolling = true;
+    if (window.Sound) Sound.dice();
     if (window.FX) FX.vibrate(40);
     let t = 0;
     const iv = setInterval(() => { D.vals = D.vals.map(() => 1 + rnd(6)); renderDice(); if (++t > 9) { clearInterval(iv); finish(); } }, 70);
