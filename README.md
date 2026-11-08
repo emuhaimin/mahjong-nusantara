@@ -35,6 +35,20 @@ Ada 26 badge (perunggu/perak/emas/giok): perjalanan (sesi pertama, 10 & 50 sesi)
 
 Delapan kartu bonus (梅蘭菊竹 bunga, 春夏秋冬 musim) ikut dikocok. Seperti di meja nyata, bunga yang didapat langsung **dibuka di depan pemain** (di samping Pong/Chow terbuka), lalu pemain mengambil kartu pengganti dari ujung belakang tembok. Saat pembagian awal, bunga diganti mulai dari dealer dan diringkas di tengah meja. Bunga yang terambil di tengah permainan diumumkan dengan notifikasi **BUNGA!**. Bunga bernomor sama dengan kursi (Timur=1 … Utara=4) diberi lingkar emas karena bernilai +1 fan (Bunga Kursi Sendiri). Set lengkap = +2 fan, tanpa bunga sama sekali = +1 fan.
 
+## Alat Meja (main mahjong sungguhan)
+
+Menu **Alat Meja** (`#tools`, `js/tools.js`) — bebas tanpa login, jalan offline:
+- **🎲 Dadu**: 2 atau 3 dadu, animasi & getar, **goyang HP** untuk melempar; mode **Tentukan dealer** (tiap pemain melempar, tertinggi jadi 東, seri diulang, lalu bisa langsung dipasang di pencatat) dan **Pecah tembok** (tembok siapa & berapa tumpukan dari kanan).
+- **📝 Pencatat Skor**: nama pemain 1–4 sesuai posisi (東 Timur/dealer, 南, 西, 北), varian Hong Kong / Taiwan / Riichi. Tiap hand: Menang (Zimo/Tsumo atau dari buangan siapa) + nilai fan/tai/han-fu, Seri (Riichi: siapa Ting), atau Poin manual. Pembayaran memakai aturan `js/variants.js`, dealer & angin ronde berputar otomatis (Riichi: honba & tongkat riichi). Riwayat, batalkan hand terakhir, bagikan klasemen sebagai gambar. Disimpan di perangkat (`localStorage`).
+- **🧮 Hitung dari kartu**: ketuk kartu menang (+bunga), tandai set yang terbuka & kartu penentu, lalu fan/tai/han dihitung otomatis — atau **📷 Kamera / 🖼️ Galeri**: foto diperkecil di browser lalu dikirim ke `POST /api/scan` → server memanggil **Claude API** (vision + structured outputs, `server/scan.js`) dan mengisi daftar kartu untuk diperiksa pemain.
+
+**Mengaktifkan scan foto** (berbayar per foto — kunci API Anthropic): tambahkan ke `/etc/mahjong-nusantara.env` di VPS lalu `systemctl restart mahjong`:
+```
+ANTHROPIC_API_KEY=sk-ant-...
+# opsional: SCAN_MODEL=claude-opus-5-5
+```
+Tanpa kunci, tombol scan menampilkan "belum diaktifkan" dan kalkulator tetap bisa diisi manual. Scan wajib login dan dibatasi 30 foto/jam per pemain.
+
 ## Pasang sebagai aplikasi
 
 Tombol **📲 Install di Android / Pasang di Layar Utama / Pasang di komputer** (Beranda, kotak mode offline, Profil, menu meja) selalu tampil selama situs belum dibuka sebagai aplikasi (`js/pwa.js`):

@@ -788,3 +788,87 @@ html.guest [data-needs-login] h3::after{content:" · 🔒 perlu login";font-size
 .install-steps li{margin-bottom:6px}
 .install-warn{color:inherit!important;margin:8px 0}
 .offline-box [data-install]{margin-top:8px}
+
+/* ---------- Alat Meja: dadu & pencatat skor (js/tools.js) ---------- */
+#view-tools{max-width:860px;margin:0 auto}
+.tools-head h2{margin-bottom:12px}
+.seg{display:inline-flex;flex-wrap:wrap;gap:4px;padding:4px;border-radius:12px;background:var(--surface-2);box-shadow:inset 0 0 0 1px var(--line)}
+.seg button{border:0;background:none;color:var(--ink);font:inherit;font-weight:700;font-size:14px;padding:8px 14px;border-radius:9px;cursor:pointer}
+.seg button.on{background:var(--jade);color:#fff}
+.tool-dice{text-align:center}
+.dice-opts{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:16px}
+.dice-tray{display:flex;gap:18px;justify-content:center;align-items:center;margin:8px auto;padding:26px 20px;border:8px solid var(--wood);border-radius:20px;background:radial-gradient(ellipse at center,var(--felt),var(--felt-2));cursor:pointer;width:min(100%,460px)}
+.die{width:84px;height:84px;display:grid;grid-template:repeat(3,1fr)/repeat(3,1fr);padding:12px;gap:4px;border-radius:16px;background:linear-gradient(145deg,#fffdf6,#e9e0c9);box-shadow:0 6px 0 #c9bd9b,0 10px 18px rgba(0,0,0,.35)}
+.die i{border-radius:50%;place-self:center;width:15px;height:15px}
+.die i.on{background:#1d2722}
+.die.red i.on{background:#c0262d}
+.die.spin{animation:dieSpin .14s linear infinite}
+@keyframes dieSpin{0%{transform:rotate(0) translateY(0)}50%{transform:rotate(14deg) translateY(-6px)}100%{transform:rotate(-10deg) translateY(0)}}
+.dice-sum{font-size:22px;margin:10px 0}
+.dice-sum b{font-size:40px;color:var(--accent)}
+.dice-btns{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+.dice-help{text-align:left;margin:16px auto 0;max-width:520px;padding:12px 14px;border-radius:12px;background:var(--surface-2);box-shadow:inset 0 0 0 1px var(--line);font-size:15px;line-height:1.5}
+.dice-help .fan-table{margin:8px 0}
+.dice-help tr.win-row td{background:color-mix(in srgb,var(--gold) 30%,transparent);font-weight:800}
+.dice-hist{margin-top:12px;font-size:14px}
+.sk-seats{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin:12px 0}
+.sk-seat{display:grid;grid-template-columns:auto auto 1fr;align-items:center;gap:8px;font-weight:700;font-size:14px}
+.sk-seat input{min-width:0}
+.sk-board .sk-head{font-size:14px;color:var(--muted);margin-bottom:10px}
+.sk-players{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.sk-p{display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 6px;border-radius:14px;background:var(--surface-2);box-shadow:inset 0 0 0 1px var(--line);text-align:center}
+.sk-p.dealer{box-shadow:inset 0 0 0 2px var(--accent)}
+.sk-name{font-weight:700;font-size:14px;line-height:1.2;word-break:break-word}
+.sk-name small{display:block;color:var(--accent);font-size:11px;text-transform:uppercase;letter-spacing:.06em}
+.sk-score{font-size:24px}
+.sk-rank{color:var(--muted)}
+.sk-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.sk-l{display:block;font-weight:700;font-size:14px;margin:14px 0 6px}
+.sk-pick{display:flex;flex-wrap:wrap;gap:6px}
+.sk-pick button{border:1.5px solid var(--line);background:var(--surface);color:var(--ink);font:inherit;font-weight:600;padding:9px 14px;border-radius:999px;cursor:pointer}
+.sk-pick button.on{border-color:var(--jade);background:var(--jade);color:#fff}
+.sk-val{display:flex;flex-wrap:wrap;align-items:flex-end;gap:10px}
+.sk-val label{display:flex;flex-direction:column;font-size:13px;font-weight:700;gap:4px}
+.sk-val input,.sk-val select{width:96px}
+.sk-items{font-size:13px;margin-top:8px}
+.sk-preview{margin-top:14px;padding:12px;border-radius:12px;background:var(--surface-2);box-shadow:inset 0 0 0 1px var(--line)}
+.sk-preview p{margin:0 0 8px}
+.sk-delta{display:flex;flex-wrap:wrap;gap:8px 16px}
+.sk-err{margin-top:14px;color:inherit!important}
+.sk-manual{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:8px}
+.sk-manual label{display:flex;flex-direction:column;font-size:13px;font-weight:700;gap:4px}
+.sk-hist details{border-top:1px solid var(--line);padding:8px 0}
+.sk-hist summary{cursor:pointer;display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:14px}
+.sk-hd{margin-left:auto;display:flex;gap:8px;font-style:normal}
+.sk-hd i{font-style:normal;font-weight:700;min-width:44px;text-align:right}
+.sk-empty{text-align:center;margin:16px 0}
+.calc h3{margin-bottom:10px}
+.calc-scan{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:10px}
+.calc-scan .muted{font-size:13px}
+.calc-note{margin:8px 0;color:inherit!important}
+.calc-hand{display:flex;flex-wrap:wrap;gap:2px;min-height:62px;padding:10px;border-radius:12px;background:radial-gradient(ellipse at center,var(--felt),var(--felt-2));align-items:center;color:#fff}
+.calc-hand .muted{color:rgba(255,255,255,.8)}
+.calc-tip{font-size:12.5px;margin:6px 0}
+.tbtn{border:0;background:none;padding:2px;cursor:pointer;border-radius:8px}
+.tbtn:disabled{opacity:.3;cursor:default}
+.tbtn.on{background:color-mix(in srgb,var(--gold) 45%,transparent)}
+.tbtn.win{outline:3px solid #ffd34d;outline-offset:-1px}
+.calc-pal{margin-top:8px}
+.calc-pal small{display:block;font-weight:700;color:var(--muted);margin-bottom:2px}
+.calc-pal>div{display:flex;flex-wrap:wrap;gap:1px}
+.calc-opts{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;margin:12px 0}
+.calc-opts label:not(.chk){display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700}
+.calc-opts input[type=number]{width:70px}
+.calc-sets{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:6px}
+.calc-set{display:flex;flex-direction:column;align-items:center;gap:2px;border:2px solid var(--line);background:var(--surface);border-radius:10px;padding:6px;cursor:pointer;font:inherit}
+.calc-set>div{display:flex}
+.calc-set.open{border-color:#e2a100;background:color-mix(in srgb,var(--gold) 20%,var(--surface))}
+.calc-set small{font-size:11px;font-weight:700;color:var(--muted)}
+.calc-msg{margin:10px 0}
+@media (max-width:639px){
+  .sk-seats{grid-template-columns:1fr}
+  .sk-players{grid-template-columns:repeat(2,1fr)}
+  .die{width:70px;height:70px;padding:10px}
+  .die i{width:12px;height:12px}
+  .dice-tray{gap:12px;padding:20px 12px}
+}

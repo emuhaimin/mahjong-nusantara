@@ -223,7 +223,7 @@
   let prev = null;
   function route() {
     const [v, arg] = (location.hash || '#home').slice(1).split('/');
-    const view = ['home', 'learn', 'play', 'watch', 'rules', 'online', 'profile'].includes(v) ? v : 'home';
+    const view = ['home', 'learn', 'play', 'watch', 'rules', 'online', 'profile', 'tools'].includes(v) ? v : 'home';
     document.querySelectorAll('.view').forEach(s => { s.hidden = s.id !== 'view-' + (view === 'watch' ? 'play' : view); });
     document.querySelectorAll('#nav a').forEach(a => a.classList.toggle('active', a.dataset.view === view));
     document.querySelectorAll('#tabbar a').forEach(a => a.classList.toggle('active', a.dataset.view === (view === 'watch' ? 'play' : view)));
@@ -231,6 +231,7 @@
     if (view === 'learn') Learn.show(Learn.current());
     if (view === 'rules') renderRules();
     if (view === 'profile') Account.renderProfile();
+    if (view === 'tools') Tools.show(arg);
     if (prev === 'online' && view !== 'online') Online.exit();
     if (view === 'online') Online.enter(arg);
     if (view === 'play' || view === 'watch') {
@@ -248,6 +249,7 @@
   Game.init();
   Online.init();
   Account.init();
+  Tools.init();
   window.addEventListener('hashchange', route);
   route();
 })();
