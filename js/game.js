@@ -661,7 +661,8 @@ const Game = (() => {
     const side = pos === 'left' || pos === 'right';
     el.className = `seat ${SLOT[p]} pos-${pos}${G.turn === p ? ' active' : ''}`;
 
-    const info = `<div class="seat-info"><span class="wind-badge w${sw}" title="Angin kursi: ${WIND_ID[sw]}">${WIND_CH[sw]}</span><span class="who"><b>${esc(pl.name)}</b><small>${WIND_ID[sw]}${p === G.dealer ? ' · Dealer' : ''}${pl.level ? ` · <span class="lv-tag lv-${pl.level}" title="Tingkat AI">${LEVELS[pl.level].label}</span>` : ''}${pl.riichi ? ' · <span class="riichi-tag" title="Sudah menyatakan riichi">RIICHI</span>' : ''}</small></span><span class="pts" title="Skor">${pl.score}</span><span class="cnt">${pl.hand.length} kartu</span></div>`;
+    const nextUp = G.turn != null && G.turn >= 0 && (G.turn + 1) % 4 === p;
+    const info = `<div class="seat-info">${typeof mjnRelTag === 'function' ? mjnRelTag(p, nextUp, cfg.mode !== 'watch') : ''}<span class="wind-badge w${sw}" title="Angin kursi: ${WIND_ID[sw]}">${WIND_CH[sw]}</span><span class="who"><b>${esc(pl.name)}</b><small>${WIND_ID[sw]}${p === G.dealer ? ' · Dealer' : ''}${pl.level ? ` · <span class="lv-tag lv-${pl.level}" title="Tingkat AI">${LEVELS[pl.level].label}</span>` : ''}${pl.riichi ? ' · <span class="riichi-tag" title="Sudah menyatakan riichi">RIICHI</span>' : ''}</small></span><span class="pts" title="Skor">${pl.score}</span><span class="cnt">${pl.hand.length} kartu</span></div>`;
 
     const sorted = pl.hand.slice().sort(sortT);
     let drawnT = null;
