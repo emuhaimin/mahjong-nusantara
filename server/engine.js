@@ -12,7 +12,7 @@ const MIX = ['hard', 'medium', 'hard', 'expert'];   // tingkat per kursi bila ho
 
 const ABORT = { abort: true };
 const TURN_MS = 30000, CLAIM_MS = 12000, RESULT_MS = 30000, BOT_THINK = 750;
-const BOT_NAMES = ['Bot Budi', 'Bot Citra', 'Bot Dedi', 'Bot Eka'];
+const BOT_NAMES = ['Bot Wati', 'Bot Budi', 'Bot Iwan', 'Bot Ani'];
 const rnd = n => Math.floor(Math.random() * n);
 const sum = a => a.reduce((x, y) => x + y, 0);
 const plain = o => JSON.parse(JSON.stringify(o)); // lepaskan objek dari realm vm

@@ -39,7 +39,7 @@ const Game = (() => {
     if (V.id !== 'hk') cfg.minFan = V.defaultMin;
     const watch = cfg.mode === 'watch';
     if (!LEVELS[cfg.level] && cfg.level !== 'mix') cfg.level = 'medium';
-    const names = watch ? ['Bot Ani', 'Bot Budi', 'Bot Citra', 'Bot Dedi'] : [cfg.name || 'Kamu', 'Bot Budi', 'Bot Citra', 'Bot Dedi'];
+    const names = watch ? ['Bot Ani', 'Bot Wati', 'Bot Budi', 'Bot Iwan'] : [cfg.name || 'Kamu', 'Bot Wati', 'Bot Budi', 'Bot Iwan'];
     // campuran: tiap bot beda tingkat (simulasi: Easy, Medium, Hard, Expert · main: Medium, Hard, Expert)
     const MIX = watch ? ['easy', 'medium', 'hard', 'expert'] : [null, 'medium', 'hard', 'expert'];
     G = {
