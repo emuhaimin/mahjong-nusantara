@@ -913,3 +913,13 @@ body.in-game .snd-dock{display:flex}
   .snd-dock{flex-direction:column;left:auto;right:max(12px,calc(env(safe-area-inset-right) + 6px));top:calc(max(12px,calc(env(safe-area-inset-top) + 6px)) + 48px)}
   .snd-dock button{width:40px;height:40px;font-size:16px}
 }
+/* penanda posisi & giliran berikutnya di kursi (mjnRelTag, js/fx.js) */
+.seat-rel{display:inline-flex;align-items:center;gap:4px;order:9}
+.seat-rel .rel{display:none;font-size:11px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;padding:2px 7px;border-radius:999px;background:rgba(255,255,255,.12);color:#f3efe3}
+.seat-rel .nx{font-size:11px;font-weight:800;padding:2px 8px;border-radius:999px;background:#f2c14e;color:#3a2a05;animation:relPulse 1.4s ease-in-out infinite}
+.seat-rel.only-next .rel{display:none}
+@keyframes relPulse{50%{opacity:.6}}
+@media (prefers-reduced-motion:reduce){.seat-rel .nx{animation:none}}
+@media (max-width:820px) and (orientation:portrait), (max-width:639px){
+  .seat-rel .rel{display:inline-block}
+}

@@ -58,3 +58,12 @@ const FX = (() => {
   return { callout, vibrate, ask, isAsking, toast };
 })();
 window.FX = FX;   // agar pemeriksaan `window.FX` di pwa.js/tools.js berfungsi
+
+/* penanda posisi relatif (Kanan/Depan/Kiri dari kursimu) & "▶ berikutnya" (giliran berlawanan jarum jam) */
+function mjnRelTag(r, next, showRel) {
+  const REL = ['Kamu', 'Kanan', 'Depan', 'Kiri'];
+  const relTxt = showRel && r ? REL[r] : '';
+  if (!relTxt && !next) return '';
+  const title = (relTxt ? `${REL[r]}mu — jalan ke-${r} setelahmu. ` : '') + 'Giliran berjalan berlawanan arah jarum jam: Timur → Selatan → Barat → Utara.' + (next ? ' Pemain ini jalan berikutnya.' : '');
+  return `<span class="seat-rel${next ? ' next' : ''}${relTxt ? '' : ' only-next'}" title="${title}">${relTxt ? `<span class="rel">${relTxt}</span>` : ''}${next ? '<span class="nx">▶ berikutnya</span>' : ''}</span>`;
+}

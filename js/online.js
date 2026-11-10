@@ -196,7 +196,8 @@ const Online = (() => {
     const el = $('#on-s-' + pos), sw = windOf(i), me = i === S.you, side = pos === 'left' || pos === 'right';
     el.className = `seat slot-${pos === 'bottom' ? 'me' : pos} pos-${pos}${g.turn === i ? ' active' : ''}`;
     const tag = seat.human ? (seat.connected ? '' : ' · <span class="on-err">terputus</span>') : ` · ${seat.level ? lvTag(seat.level) : 'bot'}`;
-    const info = `<div class="seat-info"><span class="wind-badge w${sw}">${WIND_CH[sw]}</span><span class="who"><b>${esc(pl.name)}</b><small>${WIND_ID[sw]}${i === g.dealer ? ' · Dealer' : ''}${tag}</small></span><span class="pts">${pl.score}</span><span class="cnt">${pl.count} kartu</span></div>`;
+    const nextUp = g.turn != null && g.turn >= 0 && (g.turn + 1) % 4 === i;
+    const info = `<div class="seat-info">${typeof mjnRelTag === 'function' ? mjnRelTag(rel(i), nextUp, true) : ''}<span class="wind-badge w${sw}">${WIND_CH[sw]}</span><span class="who"><b>${esc(pl.name)}</b><small>${WIND_ID[sw]}${i === g.dealer ? ' · Dealer' : ''}${tag}</small></span><span class="pts">${pl.score}</span><span class="cnt">${pl.count} kartu</span></div>`;
     let hand;
     if (pl.hand) {
       const sorted = pl.hand.slice().sort(sortT);
