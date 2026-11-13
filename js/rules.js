@@ -277,3 +277,46 @@ function genScoringQuiz() {
   ctx.score = scoreWin(ctx);
   return ctx;
 }
+
+/* ---------- set jadi di tangan tertutup (tampilan & saran buang) ----------
+   groupConcealed(tiles): kelompokkan kartu tertutup menjadi set jadi (Pong 3 sama / Chow 3 berurutan)
+   sebanyak mungkin, seperti pemain merapikan kartunya di meja sungguhan. Sisa kartu = `rest`.
+   tiles: [{ k, id, ... }] → { sets: [[tile, tile, tile], ...], rest: [tile, ...] } */
+function groupConcealed(tiles) {
+  const c = toCounts(tiles.map(t => t.k)), cur = [];
+  let best = null;
+  const restScore = () => { let s = 0; for (let k = 0; k < 34; k++) { if (c[k] >= 2) s += 2; if (k < 27 && k % 9 < 8 && c[k] && c[k + 1]) s += 1; } return s; };
+  (function dfs(k) {
+    while (k < 34 && !c[k]) k++;
+    if (k >= 34) { const sc = cur.length * 100 + restScore(); if (!best || sc > best.sc) best = { sc, sets: cur.slice() }; return; }
+    if (c[k] >= 3) { c[k] -= 3; cur.push([k, k, k]); dfs(k); cur.pop(); c[k] += 3; }
+    if (k < 27 && k % 9 <= 6 && c[k + 1] && c[k + 2]) { c[k]--; c[k + 1]--; c[k + 2]--; cur.push([k, k + 1, k + 2]); dfs(k); cur.pop(); c[k]++; c[k + 1]++; c[k + 2]++; }
+    const n = c[k]; c[k] = 0; dfs(k + 1); c[k] = n;          // sisakan kartu jenis k sebagai kartu lepas
+  })(0);
+  const pool = tiles.slice(), sets = [];
+  for (const s of (best ? best.sets : [])) sets.push(s.map(k => pool.splice(pool.findIndex(t => t.k === k), 1)[0]));
+  return { sets, rest: pool };
+}
+/* Saran buang yang tidak membongkar set jadi: bila saran `cur` ada di dalam set, pilih kartu lepas
+   (atau kartu yang baru diambil) dengan shanten terbaik. → { id, k, s } */
+function hintOutsideSets(hand, drawnId, open, sets, cur) {
+  if (!cur || !hand || !hand.length) return cur;
+  const drawn = hand.find(t => t.id === drawnId);
+  const pool = groupConcealed(hand.filter(t => t !== drawn)).rest;
+  if (drawn) pool.push(drawn);
+  if (!pool.length || pool.some(t => t.id === cur.id)) return cur;
+  const same = pool.find(t => t.k === cur.k);
+  if (same) return { id: same.id, k: cur.k, s: cur.s };
+  const c = toCounts(hand.map(t => t.k));
+  let best = null;
+  for (const t of pool) {
+    c[t.k]--;
+    const s = shantenAll(c, open, sets);
+    c[t.k]++;
+    const k = t.k, near = k < 27 && [-2, -1, 1, 2].some(d => { const j = k + d; return j >= 0 && j < 27 && Math.floor(j / 9) === Math.floor(k / 9) && c[j] > 0; });
+    const lone = (k >= 27 ? 3 : (k % 9 === 0 || k % 9 === 8) ? 2 : 0) + (near ? 0 : 1) - (c[k] >= 2 ? 3 : 0);
+    const sc = s * 10 - lone;
+    if (!best || sc < best.sc) best = { sc, id: t.id, k, s };
+  }
+  return { id: best.id, k: best.k, s: best.s };
+}

@@ -205,12 +205,16 @@ const Online = (() => {
       if (pl.drawn != null) { const j = sorted.findIndex(t => t.id === pl.drawn); if (j >= 0) drawnT = sorted.splice(j, 1)[0]; }
       const list = drawnT ? [...sorted, drawnT] : sorted;
       const ui = me && S.ui && S.ui.mode === 'turn' ? S.ui : null;
-      const hint = ui && $('#on-hint').checked ? ui.hintId : null;
+      const hint = ui && $('#on-hint').checked ? adjHint(ui).hintId : null;
       if (sel != null && !list.some(t => t.id === sel)) sel = null;
-      hand = list.map(t => tileHTML(t.k, {
+      const tH = t => tileHTML(t.k, {
         id: me ? t.id : null,
         cls: (me ? 'lg' : side ? 'xs' : 'sm') + (t === drawnT ? ' drawn' : '') + (ui ? ' clickable' : '') + (ui && sel === t.id ? ' sel' : '') + (hint === t.id ? ' hint' : ''),
-      })).join('');
+      });
+      if (me && typeof mjnGroupPref !== 'undefined' && mjnGroupPref.get()) {   // set jadi (tertutup) dipisah
+        const gr = groupConcealed(sorted);
+        hand = gr.sets.map(s => `<span class="hand-set" title="Set jadi (masih tertutup)">${s.map(tH).join('')}</span>`).join('') + gr.rest.map(tH).join('') + (drawnT ? tH(drawnT) : '');
+      } else hand = list.map(tH).join('');
     } else hand = Array.from({ length: pl.count }, () => backHTML(side ? 'sm slat' : 'sm')).join('');
     const msz = me ? 'md' : 'xs';
     const melds = flowersHTML(pl.flowers, msz, sw) + pl.melds.map(m => `<div class="meld">${meldTiles(m).map((k, j) => (m.type === 'kong' && m.concealed && (j === 0 || j === 3) && !g.reveal && !me) ? backHTML(msz) : tileHTML(k, { cls: msz })).join('')}</div>`).join('');
@@ -225,13 +229,27 @@ const Online = (() => {
     el.innerHTML = html;
   }
 
+  // saran dari server bisa membongkar set jadi → ganti dengan kartu lepas bila "Pisahkan set" aktif
+  function adjHint(ui) {
+    if (!ui || ui.mode !== 'turn' || ui.hintK == null || typeof mjnGroupPref === 'undefined' || !mjnGroupPref.get()) return ui;
+    const me = S.g && S.g.players[S.you];
+    if (!me || !me.hand) return ui;
+    if (ui._adj && ui._adjSig === me.hand.length) return ui._adj;
+    const h = hintOutsideSets(me.hand, me.drawn, me.melds.length, 4, { id: ui.hintId, k: ui.hintK, s: ui.hintS });
+    let waits = ui.waits;
+    if (h.k !== ui.hintK) { if (h.s === 0) { const ks = me.hand.map(t => t.k); ks.splice(ks.indexOf(h.k), 1); waits = waitingTiles(ks, me.melds.length); } else waits = null; }
+    ui._adj = { ...ui, hintId: h.id, hintK: h.k, hintS: h.s, waits }; ui._adjSig = me.hand.length;
+    return ui._adj;
+  }
+  document.addEventListener('mjn-group', () => { if (S && S.ui) { delete S.ui._adj; } if (S && S.g) renderGame(); });
+
   function timerHTML() {
     if (!S || !S.ui) return '';
     const left = Math.max(0, Math.ceil((deadlineAt - Date.now()) / 1000));
     return `<span class="timer${left <= 5 ? ' low' : ''}" id="on-timer">⏱ ${left} dtk</span>`;
   }
   function renderActions() {
-    const bar = $('#on-action'), ui = S.ui, g = S.g, hint = $('#on-hint').checked;
+    const bar = $('#on-action'), ui = S.ui && adjHint(S.ui), g = S.g, hint = $('#on-hint').checked;
     bar.classList.toggle('alert-turn', !!ui && ui.mode === 'turn');
     bar.classList.toggle('alert-claim', !!ui && ui.mode === 'claim');
     if (!ui) {
