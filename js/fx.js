@@ -67,3 +67,13 @@ function mjnRelTag(r, next, showRel) {
   const title = (relTxt ? `${REL[r]}mu — jalan ke-${r} setelahmu. ` : '') + 'Giliran berjalan berlawanan arah jarum jam: Timur → Selatan → Barat → Utara.' + (next ? ' Pemain ini jalan berikutnya.' : '');
   return `<span class="seat-rel${next ? ' next' : ''}${relTxt ? '' : ' only-next'}" title="${title}">${relTxt ? `<span class="rel">${relTxt}</span>` : ''}${next ? '<span class="nx">▶ berikutnya</span>' : ''}</span>`;
 }
+
+/* preferensi "Pisahkan set yang sudah jadi" (localStorage mjn-group, bawaan aktif) — kotak centang [data-group-opt] */
+const mjnGroupPref = {
+  get() { try { return localStorage.getItem('mjn-group') !== '0'; } catch { return true; } },
+  set(v) { try { localStorage.setItem('mjn-group', v ? '1' : '0'); } catch { } document.querySelectorAll('[data-group-opt]').forEach(el => { el.checked = !!v; }); document.dispatchEvent(new CustomEvent('mjn-group')); },
+};
+if (typeof document !== 'undefined' && document.querySelectorAll) {
+  document.querySelectorAll('[data-group-opt]').forEach(el => { el.checked = mjnGroupPref.get(); });
+  document.addEventListener('change', e => { if (e.target && e.target.matches && e.target.matches('[data-group-opt]')) mjnGroupPref.set(e.target.checked); });
+}

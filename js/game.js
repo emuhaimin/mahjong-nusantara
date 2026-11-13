@@ -318,7 +318,8 @@ const Game = (() => {
         }
       } else {
         const ui = { mode: 'turn', win, kongs, selected: null, riichiIds: riichiOptions(p), riichiMode: false };
-        const h = AI.evalDiscard(p, 'hard');
+        let h = AI.evalDiscard(p, 'hard');
+        if (typeof mjnGroupPref !== 'undefined' && mjnGroupPref.get()) h = hintOutsideSets(pl.hand, pl.drawn, pl.melds.length, V.sets, h);   // jangan sarankan bongkar set jadi
         if (cfg.hint) {
           ui.hintId = h.id; ui.hintK = h.k; ui.hintS = h.s;
           if (h.s === 0) {
@@ -672,7 +673,11 @@ const Game = (() => {
     if (human) {
       const ui = G.ui && G.ui.mode === 'turn' ? G.ui : null;
       const rOK = ui && ui.riichiMode ? new Set(ui.riichiIds) : null;
-      hand = list.map(t => tileHTML(t.k, { id: t.id, cls: `lg${t === drawnT ? ' drawn' : ''}${t.red ? ' red5' : ''}${ui ? ' clickable' : ''}${ui && ui.selected === t.id ? ' sel' : ''}${ui && cfg.hint && ui.hintId === t.id ? ' hint' : ''}${rOK && !rOK.has(t.id) ? ' dim' : ''}` })).join('');
+      const tH = t => tileHTML(t.k, { id: t.id, cls: `lg${t === drawnT ? ' drawn' : ''}${t.red ? ' red5' : ''}${ui ? ' clickable' : ''}${ui && ui.selected === t.id ? ' sel' : ''}${ui && cfg.hint && ui.hintId === t.id ? ' hint' : ''}${rOK && !rOK.has(t.id) ? ' dim' : ''}` });
+      if (typeof mjnGroupPref !== 'undefined' && mjnGroupPref.get()) {        // set jadi (tertutup) dipisah seperti di meja sungguhan
+        const gr = groupConcealed(sorted);
+        hand = gr.sets.map(s => `<span class="hand-set" title="Set jadi (masih tertutup)">${s.map(tH).join('')}</span>`).join('') + gr.rest.map(tH).join('') + (drawnT ? tH(drawnT) : '');
+      } else hand = list.map(tH).join('');
     } else if (reveal) {
       hand = list.map(t => tileHTML(t.k, { cls: (side ? 'xs' : 'sm') + (t === drawnT ? ' drawn' : '') + (t.red ? ' red5' : '') })).join('');
     } else {
@@ -786,6 +791,13 @@ const Game = (() => {
       else { G.ui.selected = id; render(); }
     });
     $('#opt-hint').addEventListener('change', e => { if (cfg) { cfg.hint = e.target.checked; render(); } });
+    document.addEventListener('mjn-group', () => { if (!G || !cfg) return; const ui = G.ui; const pl = G.players[0];
+      if (ui && ui.mode === 'turn' && ui.hintId != null && pl && !pl.isAI) {   // hitung ulang saran sesuai preferensi
+        let h = AI.evalDiscard(0, 'hard'); if (mjnGroupPref.get()) h = hintOutsideSets(pl.hand, pl.drawn, pl.melds.length, V.sets, h);
+        ui.hintId = h.id; ui.hintK = h.k; ui.hintS = h.s;
+        if (h.s === 0) { const ks = kindsOf(pl); ks.splice(ks.indexOf(h.k), 1); ui.waits = waitingTiles(ks, pl.melds.length, V.sets); } else ui.waits = null;
+      }
+      render(); });
     $('#opt-show').addEventListener('change', e => { if (cfg) { cfg.showHands = e.target.checked; render(); } });
     $('#opt-speed').addEventListener('change', e => { if (cfg) cfg.speed = e.target.value; });
     $('#btn-log').addEventListener('click', () => { const l = $('#log'); l.hidden = !l.hidden; renderLog(); });

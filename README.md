@@ -51,6 +51,10 @@ ANTHROPIC_API_KEY=sk-ant-...
 ```
 Tanpa kunci, tombol scan menampilkan "belum diaktifkan" dan kalkulator tetap bisa diisi manual. Scan wajib login dan dibatasi 30 foto/jam per pemain.
 
+## Set jadi di tangan
+
+Seperti di meja sungguhan, Pong (3 kartu sama) dan Chow (3 kartu berurutan) yang sudah jadi tapi masih tertutup otomatis **dipisah** di tanganmu dan diberi garis bawah emas. **Saran buang** tidak akan menyuruh membongkar set itu. Bisa dimatikan di menu ☰ meja: *Pisahkan set yang sudah jadi*. Berlaku di Main vs Mesin dan Online.
+
 ## Suara & musik
 
 `js/sound.js` membuat semua suara langsung di browser (Web Audio, tanpa file audio), jadi tetap jalan offline. Tombol **🔊 Suara & musik** ada di layar persiapan permainan dan di menu ☰ saat bermain. Pengaturan disimpan di localStorage (`mjn-sound`).
