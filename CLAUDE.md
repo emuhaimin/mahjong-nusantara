@@ -36,6 +36,7 @@ Catatan:
 - `js/progress.js`: tingkat pemain (Pemula → Dewa Mahjong, RP) & 26 badge, dihitung server (`/api/stats` → `progress`) dan ditampilkan di Profil.
 - `js/account.js` + `server/auth.js`, `server/stats.js`: login Google, rekaman sesi, statistik. **Main vs Mesin & Online wajib login** (`Account.canPlay()` / `requireLogin()`, event `mjn-auth`; server menolak create/join tanpa akun bila `GOOGLE_CLIENT_ID` aktif). Belajar, Simulasi & Aturan bebas.
 - Data pemain: `server/store-sqlite.js` (SQLite `DATA_DIR/mahjong.db`, utama; butuh Node 22.13+) dengan cadangan `server/store.js` (file JSON). Keduanya punya antarmuka yang sama — ubah keduanya bila menambah method. `server/backup.js`: backup harian otomatis ke `DATA_DIR/backups` (14 terakhir).
+- Statistik pemain: workflow `.github/workflows/stats.yml` (manual, `workflow_dispatch`) mengirim `deploy/stats.js` lewat SSH stdin ke VPS dan menulis angka agregat ke Summary. Bila pemilik bertanya jumlah pemain, jalankan workflow ini lalu baca log/summary job-nya. Jangan pernah mencetak nama/email/IP.
 - Data di VPS: `/var/lib/mahjong-nusantara`. **Jangan pernah** menghapus/menimpa folder ini atau isinya saat deploy.
 - `sw.js`: service worker / mode offline. Setiap menambah file JS/CSS/aset baru, **masukkan ke daftar `CORE`**. `deploy/install.sh` menaikkan `VERSION` otomatis saat deploy.
 - `server/server.js`: HTTP + WebSocket, tanpa dependensi npm (Node 18+).
