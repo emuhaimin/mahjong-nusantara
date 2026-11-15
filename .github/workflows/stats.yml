@@ -1,0 +1,50 @@
+# Statistik pemain — jalankan manual dari tab Actions → "Statistik pemain" → Run workflow.
+# Menghitung jumlah akun, pemain, sesi permainan & pengunjung unik langsung di VPS (database dibuka hanya-baca).
+# Hanya ANGKA yang dicetak: tidak ada nama, email, atau alamat IP. Hasil ada di ringkasan (Summary) run.
+# Memakai secret yang sama dengan deploy: VPS_HOST & VPS_SSH_KEY.
+name: Statistik pemain
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: stats-vps
+  cancel-in-progress: true
+
+jobs:
+  stats:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Siapkan kunci SSH
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+        run: |
+          if [ -z "$VPS_HOST" ] || [ -z "$VPS_SSH_KEY" ]; then
+            echo "::error::Secret VPS_HOST / VPS_SSH_KEY belum diatur."
+            exit 1
+          fi
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          printf '%s\n' "$VPS_SSH_KEY" | tr -d '\r' > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -T 20 -H "$VPS_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Hitung statistik di VPS
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+        run: |
+          # skrip dikirim lewat stdin, jadi tidak bergantung pada versi kode di VPS
+          ssh -i ~/.ssh/deploy_key -o BatchMode=yes -o ConnectTimeout=20 "root@$VPS_HOST" \
+            'node --no-warnings - /var/lib/mahjong-nusantara /var/log/nginx/domains/mahjong.rupaone.io.log' \
+            < deploy/stats.js | tee stats.md
+          cat stats.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Hapus kunci SSH
+        if: always()
+        run: rm -f ~/.ssh/deploy_key

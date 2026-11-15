@@ -236,6 +236,15 @@ systemctl start mahjong
 
 Uji lokal: `GOOGLE_CLIENT_ID=... npm start`.
 
+## Statistik pemain
+
+Tab **Actions** → **Statistik pemain** → **Run workflow**. Workflow menghitung langsung di VPS (database dibuka hanya-baca) lalu menampilkan hasilnya di *Summary* run. Isinya:
+- jumlah akun, pemain aktif (1/7/30 hari), dan sesi permainan per mode;
+- aktivitas harian 14 hari terakhir;
+- perkiraan pengunjung unik dari log nginx, termasuk tamu tanpa login.
+
+Yang ditampilkan hanya angka: tidak ada nama, email, atau IP. Skripnya ada di `deploy/stats.js` dan bisa juga dijalankan manual di VPS: `node deploy/stats.js /var/lib/mahjong-nusantara /var/log/nginx/domains/mahjong.rupaone.io.log`.
+
 ## Struktur
 
 - `js/tiles.js`, `js/rules.js` — kartu, deteksi menang, fan & poin, shanten (dipakai klien **dan** server)
