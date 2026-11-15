@@ -60,6 +60,7 @@ function tileFace(k) {
   }
   let h = `<img class="tf" src="${TILE_BASE}${tileImg(k)}.svg?v=${TILE_VER}" alt="" draggable="false">`;
   if (k < 9) h += `<span class="corner">${k + 1}</span>`;                 // bantu baca angka Tionghoa
+  else if (k < 27) h += `<span class="corner pip">${k % 9 + 1}</span>`;   // Tong/Tiao: angka jelas (mis. 4 vs 6 Tiao)
   else if (k >= 27 && k < 31) h += `<span class="corner">${WIND_SHORT[k - 27]}</span>`;
   return h;
 }

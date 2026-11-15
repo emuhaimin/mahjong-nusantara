@@ -937,3 +937,6 @@ body.in-game .snd-dock{display:flex}
   body.in-game .center{min-height:0;max-height:100%;overflow:auto;scrollbar-width:none}
   body.in-game .me-wrap{min-height:0}
 }
+/* angka pojok di kartu Tong/Tiao: lencana kecil kontras agar 4 vs 6 Tiao dsb. mudah dibedakan */
+.tile .corner.pip{top:.14em;left:.14em;padding:.1em .22em;border-radius:.3em;background:rgba(255,253,245,.92);color:#3d3320;font-size:.46em;box-shadow:0 0 0 1px rgba(90,74,44,.25)}
+.tile.xs .corner.pip,.tile.xxs .corner.pip{display:none}
