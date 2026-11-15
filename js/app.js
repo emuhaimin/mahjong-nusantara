@@ -79,8 +79,14 @@
   /* ---------- Main vs Mesin khusus pemain yang login (Simulasi bebas) ---------- */
   function syncPlayGate() {
     const locked = $('#cfg-mode').value === 'play' && !Account.canPlay();
-    $('#cfg-login-note').hidden = !locked;
-    $('#cfg-start').textContent = locked ? '🔒 Masuk untuk bermain' : 'Mulai Permainan';
+    const trial = locked && Account.trialLeft();
+    const note = $('#cfg-login-note');
+    note.hidden = !locked;
+    note.classList.toggle('warn', locked && !trial);
+    note.innerHTML = trial
+      ? '🎁 <b>Coba 1 permainan gratis tanpa login.</b> Setelah itu masuk dengan Google untuk bermain lagi — hasil permainan coba ikut tersimpan ke akunmu.'
+      : '🔒 <b>Permainan coba gratismu sudah dipakai.</b> Masuk dengan Google untuk lanjut bermain Main vs Mesin — gratis, dan riwayat, tingkat &amp; badge-mu tersimpan (hasil permainan coba ikut masuk). Tanpa login kamu tetap bisa menonton <b>Simulasi Bot</b> dan <a href="#learn">Belajar</a>.';
+    $('#cfg-start').textContent = !locked ? 'Mulai Permainan' : trial ? '🎁 Coba 1 permainan gratis' : '🔒 Masuk untuk bermain lagi';
   }
   document.addEventListener('mjn-auth', syncPlayGate);
 
@@ -119,7 +125,10 @@
   syncVariant();
   $('#cfg-start').addEventListener('click', () => {
     const m = $('#cfg-mode').value;
-    if (m === 'play' && !Account.canPlay()) { Account.requireLogin(null, '#play'); return; }
+    if (m === 'play' && !Account.canPlay()) {
+      if (Account.trialLeft()) { Account.useTrial(); syncPlayGate(); FX.toast('🎁 Permainan coba gratis — selamat bermain!'); }
+      else { Account.requireLogin('Permainan coba gratismu sudah dipakai. Masuk dengan Google untuk bermain lagi — gratis, dan hasil permainan coba ikut tersimpan ke akunmu.', '#play', '🎉 Suka permainannya? Masuk untuk lanjut'); return; }
+    }
     Game.start({
       mode: m,
       name: $('#cfg-name').value.trim() || 'Kamu',

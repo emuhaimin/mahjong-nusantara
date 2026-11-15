@@ -40,13 +40,21 @@ const Account = (() => {
      Belajar, Simulasi Bot & Aturan bebas. Pengecualian: dibuka langsung dari file (tanpa server) atau
      server yang memang belum mengaktifkan login Google (pengembangan lokal). */
   const canPlay = () => !!user || location.protocol === 'file:' || (serverReached && !clientId);
+  /* tamu boleh mencoba 1 permainan Main vs Mesin tanpa login (localStorage mjn-trial); Online tetap wajib login */
+  const TRIAL_KEY = 'mjn-trial';
+  let trialGame = false;                         // permainan yang sedang berjalan adalah permainan coba
+  const trialUsed = () => { try { return localStorage.getItem(TRIAL_KEY) === '1'; } catch { return false; } };
+  const trialLeft = () => !canPlay() && !trialUsed();
+  function useTrial() { try { localStorage.setItem(TRIAL_KEY, '1'); } catch { } trialGame = true; syncGuest(); }
+  function syncGuest() { document.documentElement.classList.toggle('trial-left', !trialUsed()); }
   function emitAuth() {
     document.documentElement.classList.toggle('guest', !canPlay());
+    syncGuest();
     document.dispatchEvent(new CustomEvent('mjn-auth', { detail: { user, canPlay: canPlay() } }));
   }
   /** ajak login; setelah berhasil, kembali ke `back` (hash halaman) */
-  async function requireLogin(text, back) {
-    const ok = await FX.ask('🔒 Masuk dengan Google untuk bermain', {
+  async function requireLogin(text, back, title) {
+    const ok = await FX.ask(title || '🔒 Masuk dengan Google untuk bermain', {
       text: text || 'Main vs Mesin dan Online khusus pemain yang sudah login, agar riwayat, tingkat & badge-mu tersimpan. Belajar dan Simulasi Bot tetap bisa tanpa login.',
       yes: 'Masuk dengan Google', no: 'Nanti saja' });
     if (!ok) return false;
@@ -159,6 +167,12 @@ const Account = (() => {
   function readQ() { try { return JSON.parse(localStorage.getItem(QKEY)) || []; } catch { return []; } }
   function writeQ(q) { try { localStorage.setItem(QKEY, JSON.stringify(q.slice(-30))); } catch { } }
   function submit(rec) {
+    if (!user && trialGame && rec && rec.mode === 'bot') {   // hasil permainan coba: simpan dulu, terkirim otomatis setelah login
+      trialGame = false;
+      const q = readQ(); q.push(rec); writeQ(q);
+      setTimeout(() => FX.toast('🎁 Hasil permainan coba disimpan di perangkat ini — masuk dengan Google agar tersimpan ke akunmu & bisa main lagi.'), 600);
+      return;
+    }
     if (!user) {
       if (!nudged && ready && clientId) { nudged = true; setTimeout(() => FX.toast('Masuk dengan Google (menu Profil) agar riwayat & evaluasi permainanmu tersimpan.'), 600); }
       return;
@@ -413,5 +427,5 @@ const Account = (() => {
       <p class="muted adm-note">${v.available ? `*Pengunjung = perkiraan perangkat unik yang membuka situs (termasuk tamu tanpa login), dari log server sejak ${new Date(v.since).toLocaleDateString('id-ID', { dateStyle: 'medium' })}. ` : `Data pengunjung tanpa login belum tersedia: ${esc(v.reason || '')} `}Hanya angka — tidak ada nama, email, atau alamat IP yang ditampilkan. Panel ini hanya terlihat oleh akun owner.</p>`;
     $('#adm-refresh').onclick = () => { box.innerHTML = '<p class="muted">Memuat…</p>'; loadAdmin(); };
   }
-  return { init, isLoggedIn, canPlay, requireLogin, ready: () => readyP, submit, renderProfile, user: () => user, displayName: display };
+  return { init, isLoggedIn, canPlay, trialLeft, trialUsed, useTrial, requireLogin, ready: () => readyP, submit, renderProfile, user: () => user, displayName: display };
 })();
