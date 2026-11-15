@@ -928,3 +928,12 @@ body.in-game .snd-dock{display:flex}
 .hand-set::after{content:'';position:absolute;left:4px;right:4px;bottom:0;height:3px;border-radius:2px;background:rgba(242,193,78,.75)}
 .hand-set:first-child{margin-left:0}
 .hand-set + .tile:not(.hand-set){margin-left:.35em}
+/* meja terkunci setinggi layar (tablet/desktop/HP landscape): tangan & tombol aksi selalu menempel di bawah,
+   area atas (kursi kiri/kanan & tengah) yang menyesuaikan/menggulir sendiri — halaman tidak perlu di-scroll */
+@media (min-width:821px), (min-width:640px) and (orientation:landscape){
+  body.in-game .table{height:100vh;height:100dvh;min-height:0;overflow:hidden;grid-template-rows:auto minmax(0,1fr) auto}
+  body.in-game .slot-left,body.in-game .slot-right{min-height:0;overflow-y:auto;overflow-x:hidden;scrollbar-width:none;overscroll-behavior:contain}
+  body.in-game .slot-left::-webkit-scrollbar,body.in-game .slot-right::-webkit-scrollbar{display:none}
+  body.in-game .center{min-height:0;max-height:100%;overflow:auto;scrollbar-width:none}
+  body.in-game .me-wrap{min-height:0}
+}
