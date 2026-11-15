@@ -77,3 +77,20 @@ if (typeof document !== 'undefined' && document.querySelectorAll) {
   document.querySelectorAll('[data-group-opt]').forEach(el => { el.checked = mjnGroupPref.get(); });
   document.addEventListener('change', e => { if (e.target && e.target.matches && e.target.matches('[data-group-opt]')) mjnGroupPref.set(e.target.checked); });
 }
+
+/* preferensi "Sembunyikan teks tips" (localStorage mjn-quiet, bawaan mati) — kotak centang [data-quiet-opt].
+   Aktif → <html class="quiet-tips">: teks giliran & saran disembunyikan; area tanganmu berkedip saat giliranmu,
+   kartu saran tetap disorot. Pesan klaim (Pong/Chow/Kong), peringatan & tombol tetap tampil. */
+const mjnQuietPref = {
+  get() { try { return localStorage.getItem('mjn-quiet') === '1'; } catch { return false; } },
+  set(v) {
+    try { localStorage.setItem('mjn-quiet', v ? '1' : '0'); } catch { }
+    document.documentElement.classList.toggle('quiet-tips', !!v);
+    document.querySelectorAll('[data-quiet-opt]').forEach(el => { el.checked = !!v; });
+  },
+};
+if (typeof document !== 'undefined' && document.querySelectorAll) {
+  document.documentElement.classList.toggle('quiet-tips', mjnQuietPref.get());
+  document.querySelectorAll('[data-quiet-opt]').forEach(el => { el.checked = mjnQuietPref.get(); });
+  document.addEventListener('change', e => { if (e.target && e.target.matches && e.target.matches('[data-quiet-opt]')) mjnQuietPref.set(e.target.checked); });
+}

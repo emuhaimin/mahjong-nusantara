@@ -252,6 +252,7 @@ const Online = (() => {
     const bar = $('#on-action'), ui = S.ui && adjHint(S.ui), g = S.g, hint = $('#on-hint').checked;
     bar.classList.toggle('alert-turn', !!ui && ui.mode === 'turn');
     bar.classList.toggle('alert-claim', !!ui && ui.mode === 'claim');
+    bar.parentElement.classList.toggle('my-turn', !!ui && ui.mode === 'turn');   // area tanganmu berkedip (mode tanpa teks tips)
     if (!ui) {
       const t = g.turn >= 0 ? g.players[g.turn] : null;
       const live = t && S.seats[g.turn] && S.seats[g.turn].human && S.seats[g.turn].connected;
@@ -276,7 +277,7 @@ const Online = (() => {
       h += `<div class="ab-hint" style="background:none;padding:0;opacity:.75">Jika waktu habis, kartu dibuang otomatis.</div>`;
     } else {
       const o = ui.opt;
-      h += `<div class="ab-msg">${esc(g.players[ui.from].name)} membuang ${tileHTML(ui.tile.k, { cls: 'sm' })} <b>${tileName(ui.tile.k)}</b> — ambil?${timerHTML()}</div><div class="ab-btns">`;
+      h += `<div class="ab-msg ab-keep">${esc(g.players[ui.from].name)} membuang ${tileHTML(ui.tile.k, { cls: 'sm' })} <b>${tileName(ui.tile.k)}</b> — ambil?${timerHTML()}</div><div class="ab-btns">`;
       if (o.win) h += `<button class="btn win" data-act="win">🀄 Hu! Menang (${o.win.fan} fan)</button>`;
       if (o.kong) h += `<button class="btn jade" data-act="kong">Kong</button>`;
       if (o.pong) h += `<button class="btn jade" data-act="pong">Pong</button>`;
