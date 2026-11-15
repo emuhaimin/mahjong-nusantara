@@ -940,3 +940,15 @@ body.in-game .snd-dock{display:flex}
 /* angka pojok di kartu Tong/Tiao: lencana kecil kontras agar 4 vs 6 Tiao dsb. mudah dibedakan */
 .tile .corner.pip{top:.14em;left:.14em;padding:.1em .22em;border-radius:.3em;background:rgba(255,253,245,.92);color:#3d3320;font-size:.46em;box-shadow:0 0 0 1px rgba(90,74,44,.25)}
 .tile.xs .corner.pip,.tile.xxs .corner.pip{display:none}
+/* mode "Sembunyikan teks tips" (mjnQuietPref, js/fx.js): teks giliran/saran disembunyikan,
+   area tanganmu berkedip saat giliranmu, kartu saran tetap disorot & berdenyut */
+html.quiet-tips .action-bar .ab-msg:not(.ab-keep){font-size:0!important;line-height:0;margin:0}
+html.quiet-tips .action-bar .ab-msg:not(.ab-keep) .timer{font-size:13px;line-height:1.4}
+html.quiet-tips .action-bar .ab-hint:not(.warn){display:none}
+html.quiet-tips .action-bar{min-height:0;padding:0}
+html.quiet-tips .action-bar.alert-turn{animation:none}
+html.quiet-tips .me-wrap.my-turn .slot-me{animation:meTurn 1.2s ease-in-out infinite}
+html.quiet-tips .me-wrap.my-turn .slot-me .tile.hint{animation:hintPulse 1.2s ease-in-out infinite}
+@keyframes meTurn{0%,100%{box-shadow:0 0 0 2px rgba(242,193,78,.35)}50%{box-shadow:0 0 0 4px #f2c14e,0 0 26px rgba(242,193,78,.55)}}
+@keyframes hintPulse{50%{outline-color:#fff6d0;transform:translateY(-.12em)}}
+@media (prefers-reduced-motion:reduce){html.quiet-tips .me-wrap.my-turn .slot-me{animation:none;box-shadow:0 0 0 4px #f2c14e}html.quiet-tips .me-wrap.my-turn .slot-me .tile.hint{animation:none}}

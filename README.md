@@ -55,6 +55,10 @@ Tanpa kunci, tombol scan menampilkan "belum diaktifkan" dan kalkulator tetap bis
 
 Seperti di meja sungguhan, Pong (3 kartu sama) dan Chow (3 kartu berurutan) yang sudah jadi tapi masih tertutup otomatis **dipisah** di tanganmu dan diberi garis bawah emas. **Saran buang** tidak akan menyuruh membongkar set itu. Bisa dimatikan di menu ☰ meja: *Pisahkan set yang sudah jadi*. Berlaku di Main vs Mesin dan Online.
 
+## Mode tanpa teks tips
+
+Menu ☰ meja → **Sembunyikan teks tips**: tulisan "Giliranmu…" dan "Saran: buang…" disembunyikan supaya meja lebih lega. Sebagai gantinya area kartumu **berkedip kuning** saat giliranmu, dan kartu yang disarankan tetap ditandai (perlu *Saran langkah* aktif). Tawaran Pong/Chow/Kong, peringatan, dan tombol tetap tampil. Berlaku di Main vs Mesin dan Online, tersimpan di perangkat.
+
 ## Suara & musik
 
 `js/sound.js` membuat semua suara langsung di browser (Web Audio, tanpa file audio), jadi tetap jalan offline. Tombol **🔊 Suara & musik** ada di layar persiapan permainan dan di menu ☰ saat bermain. Pengaturan disimpan di localStorage (`mjn-sound`).

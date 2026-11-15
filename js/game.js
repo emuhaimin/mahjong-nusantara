@@ -707,6 +707,7 @@ const Game = (() => {
     const bar = $('#action-bar'), ui = G.ui;
     bar.classList.toggle('alert-turn', !!ui && ui.mode === 'turn');
     bar.classList.toggle('alert-claim', !!ui && ui.mode === 'claim');
+    bar.parentElement.classList.toggle('my-turn', !!ui && ui.mode === 'turn');   // area tanganmu berkedip (mode tanpa teks tips)
     if (!ui) {
       const t = G.turn >= 0 ? G.players[G.turn] : null;
       bar.innerHTML = t ? `<div class="ab-msg">Giliran: <b>${esc(t.name)}</b>${t.isAI ? ' — sedang berpikir…' : ''}</div>` : '';
@@ -714,7 +715,7 @@ const Game = (() => {
     }
     let h = '';
     if (ui.mode === 'turn') {
-      h += ui.riichiLock ? `<div class="ab-msg"><b>Riichi</b> — kartu ambilanmu melengkapi tangan!</div><div class="ab-btns">`
+      h += ui.riichiLock ? `<div class="ab-msg ab-keep"><b>Riichi</b> — kartu ambilanmu melengkapi tangan!</div><div class="ab-btns">`
         : `<div class="ab-msg"><b>Giliranmu</b> — ketuk kartu untuk memilih, ketuk lagi untuk membuang.${ui.riichiMode ? ' <b>Pilih kartu untuk deklarasi Riichi.</b>' : ''}</div><div class="ab-btns">`;
       if (ui.win && !ui.win.insufficient) h += `<button class="btn win" data-act="tsumo">🀄 ${V.id === 'jp' ? 'Tsumo' : 'Zimo'}! Menang (${winTxt(ui.win)})</button>`;
       if (ui.riichiLock) h += `<button class="btn ghost" data-act="pass" style="color:#fff;border-color:rgba(255,255,255,.4)">Lewati (buang kartu ambilan)</button>`;
@@ -734,7 +735,7 @@ const Game = (() => {
       }
     } else if (ui.mode === 'claim') {
       const o = ui.opt;
-      h += `<div class="ab-msg">${pname(ui.from)} membuang ${tileHTML(ui.tile.k, { cls: 'sm' })} <b>${tileName(ui.tile.k)}</b> — ambil?</div><div class="ab-btns">`;
+      h += `<div class="ab-msg ab-keep">${pname(ui.from)} membuang ${tileHTML(ui.tile.k, { cls: 'sm' })} <b>${tileName(ui.tile.k)}</b> — ambil?</div><div class="ab-btns">`;
       if (o.win) h += `<button class="btn win" data-act="win">🀄 ${V.id === 'jp' ? 'Ron' : 'Hu'}! Menang (${winTxt(o.win)})</button>`;
       if (o.kong) h += `<button class="btn jade" data-act="kongc">Kong</button>`;
       if (o.pong) h += `<button class="btn jade" data-act="pong">Pong</button>`;
