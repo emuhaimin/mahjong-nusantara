@@ -236,6 +236,16 @@ systemctl start mahjong
 
 Uji lokal: `GOOGLE_CLIENT_ID=... npm start`.
 
+## Panel Owner (di halaman Profil)
+
+Akun owner melihat kartu **👑 Panel Owner** di Profil. Isinya:
+- akun terdaftar, pemain aktif 1/7/30 hari, dan sesi per mode, jenis mahjong & tingkat AI;
+- grafik sesi harian 14 hari;
+- room Online yang sedang aktif;
+- perkiraan pengunjung unik dari log nginx (termasuk tamu).
+
+Cara mengaktifkan: tambahkan GitHub Secret **`ADMIN_EMAILS`** berisi email Google owner (pisahkan dengan koma bila lebih dari satu), lalu jalankan workflow **Deploy ke VPS**. Email disimpan di `/etc/mahjong-nusantara.env` di VPS, tidak di repo.
+
 ## Statistik pemain
 
 Tab **Actions** → **Statistik pemain** → **Run workflow**. Workflow menghitung langsung di VPS (database dibuka hanya-baca) lalu menampilkan hasilnya di *Summary* run. Isinya:

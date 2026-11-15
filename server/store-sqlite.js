@@ -137,6 +137,7 @@ class SqliteStore {
     this._tx(() => { this.q.delGames.run(id); this.q.delUserSessions.run(id); this.q.delUser.run(id); });
   }
   userIds() { return this.q.userIds.all().map(r => r.id); }
+  getUser(id) { return this._getUser(id); }
 
   /* ---------- sesi login ---------- */
   createSession(userId) {

@@ -952,3 +952,22 @@ html.quiet-tips .me-wrap.my-turn .slot-me .tile.hint{animation:hintPulse 1.2s ea
 @keyframes meTurn{0%,100%{box-shadow:0 0 0 2px rgba(242,193,78,.35)}50%{box-shadow:0 0 0 4px #f2c14e,0 0 26px rgba(242,193,78,.55)}}
 @keyframes hintPulse{50%{outline-color:#fff6d0;transform:translateY(-.12em)}}
 @media (prefers-reduced-motion:reduce){html.quiet-tips .me-wrap.my-turn .slot-me{animation:none;box-shadow:0 0 0 4px #f2c14e}html.quiet-tips .me-wrap.my-turn .slot-me .tile.hint{animation:none}}
+/* ---------- Panel Owner (Profil, js/account.js loadAdmin) ---------- */
+.adm-card{border:2px solid color-mix(in srgb,#f2c14e 60%,var(--line))}
+.adm-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.adm-head h3{margin:0;flex:1}
+.adm-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin:14px 0}
+.adm-tile{background:var(--surface-2);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:2px}
+.adm-tile b{font-size:26px;line-height:1.1;font-variant-numeric:tabular-nums}
+.adm-tile span{font-weight:700;font-size:13px}
+.adm-tile small{color:var(--muted);font-size:12px}
+.adm-table{width:100%;border-collapse:collapse;font-size:14px;margin:6px 0 12px}
+.adm-table th,.adm-table td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:right;font-variant-numeric:tabular-nums}
+.adm-table th:first-child,.adm-table td:first-child{text-align:left}
+.adm-sub{margin:6px 0;font-size:14px}
+.adm-bars{display:grid;grid-template-columns:repeat(14,1fr);gap:4px;align-items:end;height:130px;margin:8px 0 4px}
+.adm-bar{position:relative;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center}
+.adm-bar i{display:block;width:100%;min-height:2px;background:var(--jade);border-radius:4px 4px 0 0}
+.adm-bar span{position:absolute;top:0;font-size:11px;font-weight:700}
+.adm-bar small{font-size:10px;color:var(--muted);margin-top:2px}
+.adm-note{font-size:12px;margin-top:10px}

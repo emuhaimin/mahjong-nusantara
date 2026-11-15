@@ -15,6 +15,7 @@ const { startBackups } = require('./backup');
 const { scanTiles, scanEnabled } = require('./scan');
 const { verifyGoogleIdToken } = require('./auth');
 const { summarize, sanitizeRecord } = require('./stats');
+const { adminStats, adminSet } = require('./adminstats');
 const { mjnComputeRp, mjnRankFromRp, mjnBadges } = require('../js/progress');
 
 const PORT = +process.env.PORT || 3000;
@@ -89,9 +90,14 @@ function getCookie(req, name) {
 }
 const isHttps = req => req.headers['x-forwarded-proto'] === 'https' || !!req.socket.encrypted;
 const setCookie = (req, val, maxAge) => `${COOKIE}=${encodeURIComponent(val)}; Path=${cookiePath()}; Max-Age=${maxAge}; HttpOnly; SameSite=Lax${isHttps(req) ? '; Secure' : ''}`;
+// owner/admin: email Google (terverifikasi) yang tercantum di env ADMIN_EMAILS (dipisah koma) → Panel Owner di Profil
+const ADMINS = adminSet();
+const isAdmin = u => !!(u && u.email && ADMINS.has(String(u.email).toLowerCase()));
+const ACCESS_LOG = process.env.ACCESS_LOG || '/var/log/nginx/domains/mahjong.rupaone.io.log';
 const publicUser = u => u && {
   id: u.id, name: u.name, given: u.given || u.name.split(' ')[0], alias: u.alias || null,
   display: u.alias || u.given || u.name.split(' ')[0], email: u.email, picture: u.picture, created: u.created,
+  ...(isAdmin(u) ? { admin: true } : {}),
 };
 /** rapikan & periksa alias: 2–14 karakter, huruf/angka/spasi . _ - */
 function cleanAlias(v) {
@@ -144,6 +150,11 @@ async function handleApi(req, res, url) {
       catch (e) { return send(e.status || 500, { error: e.message || 'Scan gagal.', code: e.code }); }
     }
     if (url === '/api/me' && m === 'GET') return send(200, { user: publicUser(user) });
+    if (url === '/api/admin/stats' && m === 'GET') {          // Panel Owner: hanya angka agregat
+      if (!user) return send(401, { error: 'Masuk dulu.' });
+      if (!isAdmin(user)) return send(403, { error: 'Khusus owner.' });
+      return send(200, adminStats(store, { logFile: ACCESS_LOG, rooms: rooms.size }));
+    }
     if (url === '/api/auth/google' && m === 'POST') {
       if (limited('auth:' + ip, 20, 600000)) return send(429, { error: 'Terlalu banyak percobaan. Coba lagi nanti.' });
       if (!CLIENT_ID) return send(503, { error: 'Login Google belum diaktifkan di server.' });
