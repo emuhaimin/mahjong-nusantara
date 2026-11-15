@@ -341,6 +341,7 @@ const Account = (() => {
         <div class="pf-alias"><span>Nama di meja: <b>${esc(display())}</b>${user.alias ? '' : ' <em>(belum memilih alias)</em>'}</span>
           <button class="btn jade sm" id="pf-alias">${user.alias ? 'Ubah alias' : 'Pilih alias'}</button></div>
       </div>
+      ${(data.user && data.user.admin) || user.admin ? '<section class="card adm-card" id="admin-panel"><h3>👑 Panel Owner</h3><p class="muted">Memuat statistik…</p></section>' : ''}
       ${rankCardHTML(data.progress)}
       ${s.hands ? `<div class="pf-tiles">
         ${tileStat('Sesi', s.sessions, `${s.byMode.bot || 0} vs Mesin · ${s.byMode.online || 0} Online`)}
@@ -371,6 +372,46 @@ const Account = (() => {
     $('#pf-delete').onclick = deleteAccount;
     bindBadges(data.progress);
     if (window.PWA && PWA.sync) PWA.sync();
+    loadAdmin();
+  }
+
+  /* ---------- Panel Owner (hanya akun di ADMIN_EMAILS server) ---------- */
+  async function loadAdmin() {
+    const box = $('#admin-panel'); if (!box) return;
+    let s;
+    try { s = await api('api/admin/stats'); }
+    catch (e) { box.innerHTML = `<h3>👑 Panel Owner</h3><p class="on-err">${esc(e.message || 'Gagal memuat statistik.')}</p>`; return; }
+    const n = v => Number(v || 0).toLocaleString('id-ID');
+    const MODE = { bot: 'Main vs Mesin', online: 'Online', watch: 'Simulasi' };
+    const VAR = { hk: 'Hong Kong', tw: 'Taiwan', jp: 'Riichi' };
+    const LV = { easy: 'Easy', medium: 'Medium', hard: 'Hard', expert: 'Expert', mix: 'Campuran' };
+    const max = Math.max(1, ...s.daily.map(d => d.n));
+    const v = s.visitors || {};
+    const tile = (big, label, sub) => `<div class="adm-tile"><b>${big}</b><span>${label}</span>${sub ? `<small>${sub}</small>` : ''}</div>`;
+    const list = (o, names) => Object.entries(o || {}).sort((a, b) => (b[1].n || b[1]) - (a[1].n || a[1])).map(([k, x]) => `${names[k] || k} <b>${n(x.n != null ? x.n : x)}</b>`).join(' · ') || '—';
+    box.innerHTML = `<div class="adm-head"><h3>👑 Panel Owner</h3><small class="muted">Diperbarui ${new Date(s.at).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}</small>
+        <button class="btn ghost sm" id="adm-refresh">↻ Muat ulang</button></div>
+      <div class="adm-tiles">
+        ${tile(n(s.users), 'akun terdaftar', s.firstUser ? 'sejak ' + new Date(s.firstUser).toLocaleDateString('id-ID', { dateStyle: 'medium' }) : '')}
+        ${tile(n(s.players), 'pernah bermain', 'punya ≥1 sesi tercatat')}
+        ${tile(n(s.active[7]), 'aktif 7 hari', `hari ini ${n(s.active[1])} · 30 hari ${n(s.active[30])}`)}
+        ${tile(n(s.games.total), 'sesi permainan', `${n(s.games[7])} dalam 7 hari`)}
+        ${v.available ? tile(n(v[7]), 'pengunjung 7 hari', `24 jam ${n(v[1])} · 30 hari ${n(v[30])}`) : ''}
+        ${tile(n(s.roomsNow), 'room Online aktif', 'saat ini')}
+      </div>
+      <table class="adm-table"><thead><tr><th></th><th>24 jam</th><th>7 hari</th><th>30 hari</th></tr></thead><tbody>
+        <tr><td>Akun baru</td><td>${n(s.newUsers[1])}</td><td>${n(s.newUsers[7])}</td><td>${n(s.newUsers[30])}</td></tr>
+        <tr><td>Login</td><td>${n(s.logins[1])}</td><td>${n(s.logins[7])}</td><td>${n(s.logins[30])}</td></tr>
+        <tr><td>Pemain aktif</td><td>${n(s.active[1])}</td><td>${n(s.active[7])}</td><td>${n(s.active[30])}</td></tr>
+        <tr><td>Sesi permainan</td><td>${n(s.games[1])}</td><td>${n(s.games[7])}</td><td>${n(s.games[30])}</td></tr>
+        ${v.available ? `<tr><td>Pengunjung situs*</td><td>${n(v[1])}</td><td>${n(v[7])}</td><td>${n(v[30])}</td></tr>` : ''}
+      </tbody></table>
+      <p class="adm-sub">Sesi per mode: ${list(s.byMode, MODE)}</p>
+      <p class="adm-sub">Jenis mahjong: ${list(s.byVariant, VAR)} · Tingkat AI: ${list(s.byLevel, LV)}</p>
+      <p class="adm-sub"><b>Sesi per hari (14 hari, WIB)</b></p>
+      <div class="adm-bars" role="img" aria-label="Grafik sesi per hari">${s.daily.map(d => `<div class="adm-bar" title="${d.d}: ${d.n} sesi, ${d.p} pemain"><i style="height:${Math.round(d.n / max * 100)}%"></i><span>${d.n || ''}</span><small>${d.d.slice(8)}</small></div>`).join('')}</div>
+      <p class="muted adm-note">${v.available ? `*Pengunjung = perkiraan perangkat unik yang membuka situs (termasuk tamu tanpa login), dari log server sejak ${new Date(v.since).toLocaleDateString('id-ID', { dateStyle: 'medium' })}. ` : `Data pengunjung tanpa login belum tersedia: ${esc(v.reason || '')} `}Hanya angka — tidak ada nama, email, atau alamat IP yang ditampilkan. Panel ini hanya terlihat oleh akun owner.</p>`;
+    $('#adm-refresh').onclick = () => { box.innerHTML = '<p class="muted">Memuat…</p>'; loadAdmin(); };
   }
   return { init, isLoggedIn, canPlay, requireLogin, ready: () => readyP, submit, renderProfile, user: () => user, displayName: display };
 })();

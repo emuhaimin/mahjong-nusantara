@@ -3,6 +3,7 @@
 #   VPS_HOST    = alamat IP VPS (mis. 187.77.115.96)
 #   VPS_SSH_KEY = kunci privat SSH yang kunci publiknya ada di ~/.ssh/authorized_keys milik root di VPS
 #   ANTHROPIC_API_KEY (opsional) = kunci API Anthropic untuk fitur scan foto kartu (Alat Meja)
+#   ADMIN_EMAILS (opsional) = email Google owner (pisahkan koma) → Panel Owner di halaman Profil
 # Di VPS, /root/mahjong-nusantara harus hasil `git clone` repo ini (lihat README).
 name: Deploy ke VPS
 
@@ -49,6 +50,18 @@ jobs:
           case "$ANTHROPIC_API_KEY" in sk-ant-*) ;; *) echo "::error::ANTHROPIC_API_KEY harus diawali sk-ant-"; exit 1;; esac
           printf '%s\n' "$ANTHROPIC_API_KEY" | tr -d '\r' | ssh -i ~/.ssh/deploy_key -o BatchMode=yes -o ConnectTimeout=20 "root@$VPS_HOST" \
             'set -eu; umask 077; f=/etc/mahjong-nusantara.env; IFS= read -r k; touch "$f"; grep -v "^ANTHROPIC_API_KEY=" "$f" > "$f.tmp" || true; printf "ANTHROPIC_API_KEY=%s\n" "$k" >> "$f.tmp"; mv "$f.tmp" "$f"; chmod 600 "$f"; echo "Kunci scan foto terpasang di $f"'
+
+      - name: Pasang email owner untuk Panel Owner (opsional)
+        # Secret ADMIN_EMAILS (email Google owner, pisahkan koma bila lebih dari satu) ditulis ke
+        # /etc/mahjong-nusantara.env di VPS (izin 600) lewat stdin SSH — tidak tampil di log & tidak masuk repo.
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          ADMIN_EMAILS: ${{ secrets.ADMIN_EMAILS }}
+        run: |
+          if [ -z "$ADMIN_EMAILS" ]; then echo "Secret ADMIN_EMAILS tidak diatur — Panel Owner tetap seperti sebelumnya."; exit 0; fi
+          case "$ADMIN_EMAILS" in *@*) ;; *) echo "::error::ADMIN_EMAILS harus berisi alamat email."; exit 1;; esac
+          printf '%s\n' "$ADMIN_EMAILS" | tr -d '\r ' | ssh -i ~/.ssh/deploy_key -o BatchMode=yes -o ConnectTimeout=20 "root@$VPS_HOST" \
+            'set -eu; umask 077; f=/etc/mahjong-nusantara.env; IFS= read -r k; touch "$f"; grep -v "^ADMIN_EMAILS=" "$f" > "$f.tmp" || true; printf "ADMIN_EMAILS=%s\n" "$k" >> "$f.tmp"; mv "$f.tmp" "$f"; chmod 600 "$f"; echo "Email owner terpasang di $f"'
 
       - name: Tarik kode terbaru & pasang di VPS
         env:

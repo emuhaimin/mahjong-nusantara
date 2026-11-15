@@ -67,6 +67,7 @@ class Store {
     return u;
   }
   userIds() { return Object.keys(this.users); }
+  getUser(id) { return this.users[id] || null; }
   deleteUser(id) {
     delete this.users[id];
     for (const [k, s] of Object.entries(this.sessions)) if (s.userId === id) delete this.sessions[k];
