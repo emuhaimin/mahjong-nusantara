@@ -13,7 +13,7 @@ const { Store } = require('./store');
 const { SqliteStore, loadSqlite } = require('./store-sqlite');
 const { startBackups } = require('./backup');
 const { scanTiles, scanEnabled } = require('./scan');
-const { verifyGoogleIdToken } = require('./auth');
+const { verifyGoogleIdToken, warmGoogleKeys } = require('./auth');
 const { summarize, sanitizeRecord } = require('./stats');
 const { adminStats, adminSet } = require('./adminstats');
 const { mjnComputeRp, mjnRankFromRp, mjnBadges } = require('../js/progress');
@@ -153,7 +153,7 @@ async function handleApi(req, res, url) {
     if (url === '/api/admin/stats' && m === 'GET') {          // Panel Owner: hanya angka agregat
       if (!user) return send(401, { error: 'Masuk dulu.' });
       if (!isAdmin(user)) return send(403, { error: 'Khusus owner.' });
-      return send(200, adminStats(store, { logFile: ACCESS_LOG, rooms: rooms.size }));
+      return send(200, await adminStats(store, { logFile: ACCESS_LOG, rooms: rooms.size }));
     }
     if (url === '/api/auth/google' && m === 'POST') {
       if (limited('auth:' + ip, 20, 600000)) return send(429, { error: 'Terlalu banyak percobaan. Coba lagi nanti.' });
@@ -389,6 +389,7 @@ process.on('SIGTERM', shutdown);
 process.on('SIGINT', shutdown);
 process.on('uncaughtException', e => console.error('uncaught:', e));
 
+if (CLIENT_ID && process.env.NODE_ENV === 'production') warmGoogleKeys().then(n => n && console.log(`[auth] ${n} kunci Google siap`));
 server.listen(PORT, HOST, () => {
   console.log(`\n🀄 Mahjong Nusantara berjalan:`);
   console.log(`   Komputer ini : http://localhost:${PORT}${BASE}/`);

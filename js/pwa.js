@@ -120,17 +120,17 @@ const PWA = (() => {
       navigator.serviceWorker.register('sw.js').catch(() => { });
       navigator.serviceWorker.addEventListener('message', onSwMessage);
       navigator.serviceWorker.ready.then(reg => askReady(reg.active)).catch(() => { });
-      // versi baru terpasang → muat ulang, tapi jangan saat sedang bermain
+      // versi baru terpasang → muat ulang diam-diam saat aplikasi di latar belakang (bukan saat bermain / login Google)
       let had = !!navigator.serviceWorker.controller;
       navigator.serviceWorker.addEventListener('controllerchange', () => {
         askReady(navigator.serviceWorker.controller);
         if (!had) { had = true; return; }
-        if (document.body.classList.contains('in-game')) reloadPending = true;
-        else location.reload();
+        reloadPending = true;
+        if (document.hidden) location.reload();
       });
-      new MutationObserver(() => {
-        if (reloadPending && !document.body.classList.contains('in-game')) location.reload();
-      }).observe(document.body, { attributes: true, attributeFilter: ['class'] });
+      document.addEventListener('visibilitychange', () => {
+        if (reloadPending && document.hidden && !document.body.classList.contains('in-game')) location.reload();
+      });
     }
     else {
       const el = document.getElementById('offline-state');
