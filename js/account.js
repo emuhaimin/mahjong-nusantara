@@ -33,6 +33,8 @@ const Account = (() => {
     }
     ready = true; readyResolve();
     renderChip(); prefill(true); flushQueue(); emitAuth();
+    // tamu: unduh skrip tombol Google lebih awal (saat santai) agar tombol login langsung muncul
+    if (!user && clientId && navigator.onLine !== false) { const pre = () => loadGis().catch(() => { }); if (window.requestIdleCallback) requestIdleCallback(pre, { timeout: 3000 }); else setTimeout(pre, 1500); }
     if (!$('#view-profile').hidden) renderProfile();
   }
   const isLoggedIn = () => !!user;

@@ -13,7 +13,7 @@ async function getKeys(force) {
     return JSON.parse(fs.readFileSync(process.env.MJN_TEST_JWKS, 'utf8')).keys;
   }
   if (!force && cache.keys && Date.now() < cache.exp) return cache.keys;
-  const r = await fetch(CERTS_URL);
+  const r = await fetch(CERTS_URL, { signal: AbortSignal.timeout(8000) });   // jangan menggantung bila jaringan lambat
   if (!r.ok) throw new Error('certs ' + r.status);
   const j = await r.json();
   const m = /max-age=(\d+)/.exec(r.headers.get('cache-control') || '');
@@ -44,4 +44,6 @@ async function verifyGoogleIdToken(token, clientId) {
   if (!payload.sub) throw new Error('sub');
   return payload;
 }
-module.exports = { verifyGoogleIdToken };
+/** ambil kunci Google lebih awal (saat server menyala) agar login pertama setelah deploy tidak menunggu */
+function warmGoogleKeys() { return getKeys(false).then(k => k.length, e => { console.warn('[auth] gagal memanaskan kunci Google:', e.message); return 0; }); }
+module.exports = { verifyGoogleIdToken, warmGoogleKeys };

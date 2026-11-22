@@ -40,7 +40,7 @@ Catatan:
 - **Panel Owner** (Profil, `loadAdmin()` di `js/account.js`): tampil hanya bila email akun ada di env `ADMIN_EMAILS` (dipisah koma; `isAdmin()` di server, `publicUser().admin`). Data dari `GET /api/admin/stats` (`server/adminstats.js`, cache 2 menit, pakai `store.userIds()/getUser()/games()` + log nginx `ACCESS_LOG`). `ADMIN_EMAILS` dipasang ke VPS oleh deploy dari GitHub Secret `ADMIN_EMAILS` — **jangan** tulis email owner di repo (repo publik).
 - Statistik pemain: workflow `.github/workflows/stats.yml` (manual, `workflow_dispatch`) mengirim `deploy/stats.js` lewat SSH stdin ke VPS dan menulis angka agregat ke Summary. Bila pemilik bertanya jumlah pemain, jalankan workflow ini lalu baca log/summary job-nya. Jangan pernah mencetak nama/email/IP.
 - Data di VPS: `/var/lib/mahjong-nusantara`. **Jangan pernah** menghapus/menimpa folder ini atau isinya saat deploy.
-- `sw.js`: service worker / mode offline. Setiap menambah file JS/CSS/aset baru, **masukkan ke daftar `CORE`**. `deploy/install.sh` menaikkan `VERSION` otomatis saat deploy.
+- `sw.js`: service worker / mode offline. Setiap menambah file JS/CSS/aset baru, **masukkan ke daftar `CORE`**. `deploy/install.sh` menaikkan `VERSION` otomatis saat deploy. Versi baru **tidak** memuat ulang halaman saat tampil (bisa memutus login Google); `js/pwa.js` memuat ulang diam-diam saat aplikasi ke latar belakang dan tidak sedang bermain.
 - `server/server.js`: HTTP + WebSocket, tanpa dependensi npm (Node 18+).
 
 ## Pengujian
