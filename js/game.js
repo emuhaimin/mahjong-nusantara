@@ -14,6 +14,8 @@ const Game = (() => {
   const dieCh = v => String.fromCodePoint(0x267F + v);
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const sortT = (a, b) => a.k - b.k || a.id - b.id;
+  const handKey = () => 'off:' + (G ? G.handNo : 0);   // susunan kartu buatan pemain diingat per hand (js/handdrag.js)
+  const hasDrag = () => typeof MjnHand !== 'undefined';
   function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = rnd(i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; }
   function wait(ms) {
     const t = token;
@@ -32,6 +34,7 @@ const Game = (() => {
 
   /* ================= SIKLUS PERMAINAN ================= */
   function start(config) {
+    if (typeof MjnHand !== 'undefined') { MjnHand.clear('off:'); if ((config || {}).mode !== 'watch') MjnHand.tip(); }
     stop();
     cfg = Object.assign({ mode: 'play', name: 'Kamu', minFan: 1, speed: 'normal', hint: true, showHands: false, length: 'east', level: 'medium', variant: 'hk' }, config);
     V = MJN_VARIANTS[cfg.variant] || MJN_VARIANTS.hk;
@@ -319,7 +322,7 @@ const Game = (() => {
       } else {
         const ui = { mode: 'turn', win, kongs, selected: null, riichiIds: riichiOptions(p), riichiMode: false };
         let h = AI.evalDiscard(p, 'hard');
-        if (typeof mjnGroupPref !== 'undefined' && mjnGroupPref.get()) h = hintOutsideSets(pl.hand, pl.drawn, pl.melds.length, V.sets, h);   // jangan sarankan bongkar set jadi
+        if (typeof mjnGroupPref !== 'undefined' && mjnGroupPref.get()) h = hintOutsideSets(pl.hand, pl.drawn, pl.melds.length, V.sets, h, hasDrag() ? MjnHand.pool(handKey(), pl.hand, pl.drawn, true) : null);   // jangan sarankan bongkar set jadi
         if (cfg.hint) {
           ui.hintId = h.id; ui.hintK = h.k; ui.hintS = h.s;
           if (h.s === 0) {
@@ -673,8 +676,10 @@ const Game = (() => {
     if (human) {
       const ui = G.ui && G.ui.mode === 'turn' ? G.ui : null;
       const rOK = ui && ui.riichiMode ? new Set(ui.riichiIds) : null;
-      const tH = t => tileHTML(t.k, { id: t.id, cls: `lg${t === drawnT ? ' drawn' : ''}${t.red ? ' red5' : ''}${ui ? ' clickable' : ''}${ui && ui.selected === t.id ? ' sel' : ''}${ui && cfg.hint && ui.hintId === t.id ? ' hint' : ''}${rOK && !rOK.has(t.id) ? ' dim' : ''}` });
-      if (typeof mjnGroupPref !== 'undefined' && mjnGroupPref.get()) {        // set jadi (tertutup) dipisah seperti di meja sungguhan
+      const tH = t => tileHTML(t.k, { id: t.id, cls: `lg${hasDrag() && MjnHand.dragging() === t.id ? ' drag-src' : ''}${t === drawnT ? ' drawn' : ''}${t.red ? ' red5' : ''}${ui ? ' clickable' : ''}${ui && ui.selected === t.id ? ' sel' : ''}${ui && cfg.hint && ui.hintId === t.id ? ' hint' : ''}${rOK && !rOK.has(t.id) ? ' dim' : ''}` });
+      const grouping = typeof mjnGroupPref !== 'undefined' && mjnGroupPref.get();   // set jadi (tertutup) dipisah seperti di meja sungguhan
+      if (hasDrag()) hand = MjnHand.html(handKey(), sorted, drawnT, tH, grouping);   // bisa disusun ulang dengan drag
+      else if (grouping) {
         const gr = groupConcealed(sorted);
         hand = gr.sets.map(s => `<span class="hand-set" title="Set jadi (masih tertutup)">${s.map(tH).join('')}</span>`).join('') + gr.rest.map(tH).join('') + (drawnT ? tH(drawnT) : '');
       } else hand = list.map(tH).join('');
@@ -716,7 +721,7 @@ const Game = (() => {
     let h = '';
     if (ui.mode === 'turn') {
       h += ui.riichiLock ? `<div class="ab-msg ab-keep"><b>Riichi</b> — kartu ambilanmu melengkapi tangan!</div><div class="ab-btns">`
-        : `<div class="ab-msg"><b>Giliranmu</b> — ketuk kartu untuk memilih, ketuk lagi untuk membuang.${ui.riichiMode ? ' <b>Pilih kartu untuk deklarasi Riichi.</b>' : ''}</div><div class="ab-btns">`;
+        : `<div class="ab-msg"><b>Giliranmu</b> — ketuk kartu 2× atau tarik ke atas untuk membuang · geser untuk menyusun.${ui.riichiMode ? ' <b>Pilih kartu untuk deklarasi Riichi.</b>' : ''}</div><div class="ab-btns">`;
       if (ui.win && !ui.win.insufficient) h += `<button class="btn win" data-act="tsumo">🀄 ${V.id === 'jp' ? 'Tsumo' : 'Zimo'}! Menang (${winTxt(ui.win)})</button>`;
       if (ui.riichiLock) h += `<button class="btn ghost" data-act="pass" style="color:#fff;border-color:rgba(255,255,255,.4)">Lewati (buang kartu ambilan)</button>`;
       if (ui.riichiIds && ui.riichiIds.length) h += `<button class="btn ${ui.riichiMode ? 'gold' : 'jade'}" data-act="riichi">${ui.riichiMode ? '✓ Riichi dipilih — batal' : 'Riichi! (−1000)'}</button>`;
@@ -792,13 +797,26 @@ const Game = (() => {
       else { G.ui.selected = id; render(); }
     });
     $('#opt-hint').addEventListener('change', e => { if (cfg) { cfg.hint = e.target.checked; render(); } });
-    document.addEventListener('mjn-group', () => { if (!G || !cfg) return; const ui = G.ui; const pl = G.players[0];
-      if (ui && ui.mode === 'turn' && ui.hintId != null && pl && !pl.isAI) {   // hitung ulang saran sesuai preferensi
-        let h = AI.evalDiscard(0, 'hard'); if (mjnGroupPref.get()) h = hintOutsideSets(pl.hand, pl.drawn, pl.melds.length, V.sets, h);
+    function recalcHint() {
+      if (!G || !cfg) return; const ui = G.ui; const pl = G.players[0];
+      if (ui && ui.mode === 'turn' && ui.hintId != null && pl && !pl.isAI) {   // hitung ulang saran sesuai preferensi & susunan kartu
+        let h = AI.evalDiscard(0, 'hard'); if (mjnGroupPref.get()) h = hintOutsideSets(pl.hand, pl.drawn, pl.melds.length, V.sets, h, hasDrag() ? MjnHand.pool(handKey(), pl.hand, pl.drawn, true) : null);
         ui.hintId = h.id; ui.hintK = h.k; ui.hintS = h.s;
         if (h.s === 0) { const ks = kindsOf(pl); ks.splice(ks.indexOf(h.k), 1); ui.waits = waitingTiles(ks, pl.melds.length, V.sets); } else ui.waits = null;
       }
-      render(); });
+    }
+    document.addEventListener('mjn-group', () => { if (!G || !cfg) return; recalcHint(); render(); });
+    // drag untuk menyusun kartu & geser ke atas untuk membuang (js/handdrag.js)
+    if (hasDrag()) MjnHand.attach($('#seat-0'), {
+      key: handKey,
+      canDiscard: () => !!(G && G.ui && G.ui.mode === 'turn' && pending && !G.ui.riichiLock),
+      discard: id => {
+        if (!G || !G.ui || G.ui.mode !== 'turn' || !pending || G.ui.riichiLock) return;
+        if (G.ui.riichiMode && !G.ui.riichiIds.includes(id)) { FX.toast('Untuk Riichi, buang kartu yang membuatmu tetap Ting (kartu terang).'); return; }
+        pending.resolve({ type: 'discard', id, riichi: !!G.ui.riichiMode });
+      },
+      changed: () => { recalcHint(); render(); },
+    });
     $('#opt-show').addEventListener('change', e => { if (cfg) { cfg.showHands = e.target.checked; render(); } });
     $('#opt-speed').addEventListener('change', e => { if (cfg) cfg.speed = e.target.value; });
     $('#btn-log').addEventListener('click', () => { const l = $('#log'); l.hidden = !l.hidden; renderLog(); });
