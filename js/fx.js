@@ -94,3 +94,23 @@ if (typeof document !== 'undefined' && document.querySelectorAll) {
   document.querySelectorAll('[data-quiet-opt]').forEach(el => { el.checked = mjnQuietPref.get(); });
   document.addEventListener('change', e => { if (e.target && e.target.matches && e.target.matches('[data-quiet-opt]')) mjnQuietPref.set(e.target.checked); });
 }
+
+/* ---------- keterangan "Chow hanya dari pemain kiri" ---------- */
+/** bisakah kartu k di-Chow dengan kartu tangan (daftar jenis)? */
+function mjnCanChow(kinds, k) {
+  if (k >= 27) return false;
+  const c = new Array(34).fill(0); for (const x of kinds) if (x < 34) c[x]++;
+  for (const s of [k - 2, k - 1, k]) {
+    if (s < 0 || Math.floor(s / 9) !== Math.floor(k / 9) || s % 9 > 6) continue;
+    if ([s, s + 1, s + 2].filter(x => x !== k).every(x => c[x] >= 1)) return true;
+  }
+  return false;
+}
+const mjnChowNoteHTML = leftName => `<div class="ab-hint chow-note">ℹ️ Kartu ini bisa jadi <b>Chow</b> di tanganmu, tetapi Chow hanya boleh dari buangan <b>pemain kiri</b>${leftName ? ` (${leftName})` : ''}. Pong &amp; Kong boleh dari siapa saja.</div>`;
+/** notifikasi singkat bila tidak ada tawaran klaim sama sekali — maks. 3 kali per perangkat */
+function mjnChowToast(tileLabel, leftName) {
+  let n = 0; try { n = +localStorage.getItem('mjn-chow-note') || 0; } catch { }
+  if (n >= 3) return;
+  try { localStorage.setItem('mjn-chow-note', String(n + 1)); } catch { }
+  try { FX.toast(`ℹ️ ${tileLabel} bisa Chow, tapi Chow hanya dari pemain kiri${leftName ? ` (${leftName})` : ''}.`); } catch { }
+}
