@@ -974,3 +974,14 @@ html.quiet-tips .me-wrap.my-turn .slot-me .tile.hint{animation:hintPulse 1.2s ea
 /* tamu yang belum memakai permainan coba: label kartu "Main vs Mesin" di Beranda */
 html.guest.trial-left a[href="#play"][data-needs-login] h3::after{content:" · 🎁 coba 1x tanpa login";color:var(--jade)}
 #cfg-login-note:not(.warn){background:color-mix(in srgb,var(--jade) 14%,var(--surface));color:var(--ink);border:1px solid color-mix(in srgb,var(--jade) 40%,transparent)}
+/* ---------- susun kartu dengan drag & buang dengan geser ke atas (js/handdrag.js) ---------- */
+.slot-me .seat-hand .tile[data-id]{touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;cursor:grab}
+body.hand-dragging,body.hand-dragging *{cursor:grabbing!important;-webkit-user-select:none;user-select:none}
+.tile.drag-src{opacity:.28}
+.tile.drag-ghost{position:fixed;z-index:200;margin:0;pointer-events:none;box-shadow:0 14px 28px rgba(0,0,0,.45);transition:box-shadow .15s,outline-color .15s;outline:.15em solid transparent;outline-offset:.06em}
+.tile.drag-ghost.to-discard{outline-color:#ff7b6b;box-shadow:0 0 0 .3em rgba(255,123,107,.35),0 14px 28px rgba(0,0,0,.45)}
+.tile.drag-ghost.to-discard::after{content:'Lepas = buang';position:absolute;left:50%;bottom:calc(100% + .5em);transform:translateX(-50%);white-space:nowrap;font:800 12px/1 var(--sans);background:#c0262d;color:#fff;padding:5px 8px;border-radius:999px}
+.seat-hand .tile.drop-before{box-shadow:-.22em 0 0 #f2c14e}
+.seat-hand .tile.drop-after{box-shadow:.22em 0 0 #f2c14e}
+.hand-reset{align-self:center;margin-left:.4em;width:30px;height:30px;border-radius:50%;border:1px solid rgba(255,255,255,.3);background:rgba(0,0,0,.25);color:#f3efe3;font-size:16px;line-height:1;cursor:pointer;flex:none}
+.hand-reset:hover{background:rgba(0,0,0,.45)}

@@ -4,6 +4,8 @@ const Online = (() => {
   const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const dieCh = v => String.fromCodePoint(0x267F + v);
   const sortT = (a, b) => a.k - b.k || a.id - b.id;
+  const hasDrag = () => typeof MjnHand !== 'undefined';
+  const handKey = () => 'on:' + (S && S.code ? S.code : '') + ':' + (S && S.g ? S.g.handNo : 0);   // susunan kartu buatan pemain per hand
   const POS = ['bottom', 'right', 'top', 'left'];
   const LS = 'mjn-online';
   let ws = null, S = null, everOpen = false, retry = null, sel = null, deadlineAt = 0, totalMs = 0;
@@ -209,9 +211,11 @@ const Online = (() => {
       if (sel != null && !list.some(t => t.id === sel)) sel = null;
       const tH = t => tileHTML(t.k, {
         id: me ? t.id : null,
-        cls: (me ? 'lg' : side ? 'xs' : 'sm') + (t === drawnT ? ' drawn' : '') + (ui ? ' clickable' : '') + (ui && sel === t.id ? ' sel' : '') + (hint === t.id ? ' hint' : ''),
+        cls: (me ? 'lg' : side ? 'xs' : 'sm') + (me && hasDrag() && MjnHand.dragging() === t.id ? ' drag-src' : '') + (t === drawnT ? ' drawn' : '') + (ui ? ' clickable' : '') + (ui && sel === t.id ? ' sel' : '') + (hint === t.id ? ' hint' : ''),
       });
-      if (me && typeof mjnGroupPref !== 'undefined' && mjnGroupPref.get()) {   // set jadi (tertutup) dipisah
+      if (me && hasDrag()) MjnHand.tip();
+      if (me && hasDrag()) hand = MjnHand.html(handKey(), sorted, drawnT, tH, typeof mjnGroupPref !== 'undefined' && mjnGroupPref.get());   // bisa disusun ulang dengan drag
+      else if (me && typeof mjnGroupPref !== 'undefined' && mjnGroupPref.get()) {   // set jadi (tertutup) dipisah
         const gr = groupConcealed(sorted);
         hand = gr.sets.map(s => `<span class="hand-set" title="Set jadi (masih tertutup)">${s.map(tH).join('')}</span>`).join('') + gr.rest.map(tH).join('') + (drawnT ? tH(drawnT) : '');
       } else hand = list.map(tH).join('');
@@ -234,11 +238,12 @@ const Online = (() => {
     if (!ui || ui.mode !== 'turn' || ui.hintK == null || typeof mjnGroupPref === 'undefined' || !mjnGroupPref.get()) return ui;
     const me = S.g && S.g.players[S.you];
     if (!me || !me.hand) return ui;
-    if (ui._adj && ui._adjSig === me.hand.length) return ui._adj;
-    const h = hintOutsideSets(me.hand, me.drawn, me.melds.length, 4, { id: ui.hintId, k: ui.hintK, s: ui.hintS });
+    const sig = me.hand.length + '|' + (hasDrag() && MjnHand.isCustom(handKey()) ? (MjnHand.arrange(handKey(), me.hand.slice().sort(sortT), null).items.map(t => t.id).join(',')) : '');
+    if (ui._adj && ui._adjSig === sig) return ui._adj;
+    const h = hintOutsideSets(me.hand, me.drawn, me.melds.length, 4, { id: ui.hintId, k: ui.hintK, s: ui.hintS }, hasDrag() ? MjnHand.pool(handKey(), me.hand, me.drawn, true) : null);
     let waits = ui.waits;
     if (h.k !== ui.hintK) { if (h.s === 0) { const ks = me.hand.map(t => t.k); ks.splice(ks.indexOf(h.k), 1); waits = waitingTiles(ks, me.melds.length); } else waits = null; }
-    ui._adj = { ...ui, hintId: h.id, hintK: h.k, hintS: h.s, waits }; ui._adjSig = me.hand.length;
+    ui._adj = { ...ui, hintId: h.id, hintK: h.k, hintS: h.s, waits }; ui._adjSig = sig;
     return ui._adj;
   }
   document.addEventListener('mjn-group', () => { if (S && S.ui) { delete S.ui._adj; } if (S && S.g) renderGame(); });
@@ -261,7 +266,7 @@ const Online = (() => {
     }
     let h = '';
     if (ui.mode === 'turn') {
-      h += `<div class="ab-msg"><b>Giliranmu</b>${timerHTML()} — ketuk kartu untuk memilih, ketuk lagi untuk membuang.</div><div class="ab-btns">`;
+      h += `<div class="ab-msg"><b>Giliranmu</b>${timerHTML()} — ketuk kartu 2× atau tarik ke atas untuk membuang · geser untuk menyusun.</div><div class="ab-btns">`;
       if (ui.win && !ui.win.insufficient) h += `<button class="btn win" data-act="tsumo">🀄 Zimo! Menang (${ui.win.fan} fan)</button>`;
       ui.kongs.forEach(o => { h += `<button class="btn jade" data-act="kong" data-k="${o.k}">Kong ${tileHTML(o.k, { cls: 'xxs' })}</button>`; });
       const me = g.players[S.you];
@@ -459,6 +464,13 @@ const Online = (() => {
         if (a === 'chow') act({ type: 'chow', s: +b.dataset.s });
         else act({ type: a });
       }
+    });
+    // drag untuk menyusun kartu & geser ke atas untuk membuang (js/handdrag.js)
+    if (hasDrag()) MjnHand.attach($('#on-s-bottom'), {
+      key: handKey,
+      canDiscard: () => !!(S && S.ui && S.ui.mode === 'turn'),
+      discard: id => { if (S && S.ui && S.ui.mode === 'turn') act({ type: 'discard', id }); },
+      changed: () => { if (S && S.ui) delete S.ui._adj; if (S && S.g) renderGame(); },
     });
     $('#on-s-bottom').addEventListener('click', e => {
       const t = e.target.closest('.tile[data-id]');

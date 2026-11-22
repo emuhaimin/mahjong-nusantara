@@ -299,11 +299,12 @@ function groupConcealed(tiles) {
 }
 /* Saran buang yang tidak membongkar set jadi: bila saran `cur` ada di dalam set, pilih kartu lepas
    (atau kartu yang baru diambil) dengan shanten terbaik. → { id, k, s } */
-function hintOutsideSets(hand, drawnId, open, sets, cur) {
+function hintOutsideSets(hand, drawnId, open, sets, cur, poolOverride) {
   if (!cur || !hand || !hand.length) return cur;
   const drawn = hand.find(t => t.id === drawnId);
-  const pool = groupConcealed(hand.filter(t => t !== drawn)).rest;
-  if (drawn) pool.push(drawn);
+  let pool;
+  if (poolOverride) pool = poolOverride.slice();          // susunan buatan pemain (js/handdrag.js)
+  else { pool = groupConcealed(hand.filter(t => t !== drawn)).rest; if (drawn) pool.push(drawn); }
   if (!pool.length || pool.some(t => t.id === cur.id)) return cur;
   const same = pool.find(t => t.k === cur.k);
   if (same) return { id: same.id, k: cur.k, s: cur.s };
