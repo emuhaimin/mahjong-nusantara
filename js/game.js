@@ -406,7 +406,10 @@ const Game = (() => {
         o.pong = n >= 2; o.kong = n >= 3;
         if (i === 1) o.chows = chowOptions(pl, tile.k);
       }
+      // pemain manusia yang bukan di kanan pembuang: Chow tidak boleh, tapi beri tahu bila sebenarnya bisa
+      if (!pl.isAI && i !== 1 && G.wall.length > 0 && !pl.riichi && typeof mjnCanChow === 'function' && mjnCanChow(kindsOf(pl), tile.k)) o.chowNote = pname((p + 3) % 4);
       if (o.win || o.pong || o.kong || o.chows.length) opts.push(o);
+      else if (o.chowNote && cfg.hint) mjnChowToast(tileName(tile.k), o.chowNote);
       else if (o.short && !pl.isAI) log(`(Info) ${tileName(tile.k)} melengkapi tanganmu, tetapi ${o.short.reason}.`);
     }
     const decs = [];
@@ -747,6 +750,7 @@ const Game = (() => {
       o.chows.forEach(s => { h += `<button class="btn jade" data-act="chow" data-s="${s}">Chow ${[s, s + 1, s + 2].map(k => tileHTML(k, { cls: 'xxs' })).join('')}</button>`; });
       h += `<button class="btn ghost" data-act="pass" style="color:#fff;border-color:rgba(255,255,255,.4)">Lewati</button></div>`;
       if (o.short) h += `<div class="ab-hint warn">Kartu ini melengkapi tanganmu, tetapi ${o.short.reason}.</div>`;
+      if (o.chowNote && typeof mjnChowNoteHTML === 'function') h += mjnChowNoteHTML(esc(o.chowNote));
       if (o.furiten) h += `<div class="ab-hint warn">Kartu ini melengkapi tanganmu, tetapi kamu <b>furiten</b> (pernah membuang kartu tunggumu / melewatkan Ron) — hanya boleh menang Tsumo.</div>`;
       if (cfg.hint && ui.hint) h += `<div class="ab-hint">💡 ${ui.hint}</div>`;
     }

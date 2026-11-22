@@ -183,7 +183,17 @@ const Online = (() => {
     renderActions();
     renderChat();
     setInvite();
-    if (g.lastDiscard && g.lastDiscard.id !== lastDiscardId) { if (lastDiscardId !== null && window.Sound) Sound.tile(); lastDiscardId = g.lastDiscard.id; }
+    if (g.lastDiscard && g.lastDiscard.id !== lastDiscardId) {
+      if (lastDiscardId !== null && window.Sound) Sound.tile();
+      lastDiscardId = g.lastDiscard.id;
+      // buangan pemain selain kiri yang sebenarnya bisa di-Chow → beri tahu (bila tidak ada tawaran klaim)
+      const me = g.players[S.you], left = (S.you + 3) % 4, fromP = g.lastDiscard.p;
+      const dt = fromP != null && g.players[fromP] ? (g.players[fromP].discards || []).find(t => t.id === g.lastDiscard.id) : null;
+      if (dt && fromP !== S.you && fromP !== left && !(S.ui && S.ui.mode === 'claim') && me && me.hand && $('#on-hint').checked && typeof mjnCanChow === 'function' && mjnCanChow(me.hand.map(t => t.k), dt.k)) {
+        const label = tileName(dt.k), ln = g.players[left].name;
+        setTimeout(() => { if (!(S && S.ui && S.ui.mode === 'claim')) mjnChowToast(label, ln); }, 600);   // tawaran klaim bisa menyusul sesaat lagi
+      }
+    }
     if (g.callout && g.callout.id !== lastCallout) {
       const fresh = lastCallout !== null || Date.now() - g.callout.id < 2500;
       lastCallout = g.callout.id;
@@ -289,6 +299,8 @@ const Online = (() => {
       o.chows.forEach(s => { h += `<button class="btn jade" data-act="chow" data-s="${s}">Chow ${[s, s + 1, s + 2].map(k => tileHTML(k, { cls: 'xxs' })).join('')}</button>`; });
       h += `<button class="btn ghost" data-act="pass" style="color:#fff;border-color:rgba(255,255,255,.4)">Lewati</button></div>`;
       if (o.short) h += `<div class="ab-hint warn">Kartu ini melengkapi tanganmu, tetapi baru ${o.short.fan} fan (minimal ${S.opts.minFan}).</div>`;
+      { const me = g.players[S.you], left = (S.you + 3) % 4;   // Chow hanya dari pemain kiri
+        if (ui.from !== left && !o.chows.length && me && me.hand && typeof mjnCanChow === 'function' && mjnCanChow(me.hand.map(t => t.k), ui.tile.k)) h += mjnChowNoteHTML(esc(g.players[left].name)); }
       if (hint && ui.hint) h += `<div class="ab-hint">💡 ${ui.hint}</div>`;
     }
     bar.innerHTML = h;
